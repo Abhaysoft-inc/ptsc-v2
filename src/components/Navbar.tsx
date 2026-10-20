@@ -52,7 +52,7 @@ export default function Navbar() {
         {/* Right Action - Simple Text */}
         <div className="hidden md:flex items-center gap-6 text-sm font-medium">
           <Link
-            href="#signin"
+            href="/login"
             className="text-neutral-300 hover:text-white transition-colors duration-150"
           >
             Sign in
@@ -84,7 +84,7 @@ export default function Navbar() {
             </Link>
           ))}
           <Link
-            href="#signin"
+            href="/login"
             onClick={() => setMobileMenuOpen(false)}
             className="text-white hover:text-neutral-300 transition-colors py-1 pt-2 border-t border-white/10"
           >
