@@ -1,26 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
-
-export interface EventCardData {
-  id?: string;
-  tag: string;
-  month: string;
-  day: string | number;
-  title: string;
-  description: string;
-  image: string;
-  locationTitle: string;
-  locationSubtitle: string;
-}
+import { EventData } from "@/lib/events";
 
 interface EventCardProps {
-  event: EventCardData;
+  event: EventData;
 }
 
 export default function EventCard({ event }: EventCardProps) {
   const {
+    id,
     tag,
     month,
     day,
@@ -32,7 +23,10 @@ export default function EventCard({ event }: EventCardProps) {
   } = event;
 
   return (
-    <article className="group relative flex flex-col justify-between rounded-2xl bg-[#171717] border border-white/[0.08] hover:border-white/20 overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 select-none">
+    <Link
+      href={`/events/${id}`}
+      className="group relative flex flex-col justify-between rounded-2xl bg-[#171717] border border-white/[0.08] hover:border-white/20 overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 select-none cursor-pointer"
+    >
       {/* Top Text Content Area */}
       <div className="flex flex-col px-6 sm:px-7 pt-6 sm:pt-7 pb-5">
         {/* Top Header Row */}
@@ -88,6 +82,6 @@ export default function EventCard({ event }: EventCardProps) {
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }

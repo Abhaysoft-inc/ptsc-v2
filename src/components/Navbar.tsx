@@ -9,11 +9,10 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const links = [
-    { name: "Community", href: "#community" },
-    { name: "Products", href: "#products" },
-    { name: "Events", href: "#events" },
-    { name: "Stories", href: "#stories" },
-    { name: "About", href: "#about" },
+    { name: "Home", href: "/" },
+    { name: "Events", href: "/events" },
+    { name: "Team", href: "/team" },
+    { name: "Blogs", href: "/blogs" },
   ];
 
   return (

@@ -1,46 +1,8 @@
 "use client";
 
 import { Users } from "lucide-react";
-import EventCard, { EventCardData } from "./EventCard";
-
-const upcomingEvents: EventCardData[] = [
-  {
-    id: "event-peace",
-    tag: "Lush and green",
-    month: "JAN",
-    day: "25",
-    title: "Discovering Peace",
-    description:
-      "Far from the city's noise, the green mountains stretch endlessly into the horizon, blanketed with mist and silence.",
-    image: "/bg.jpg",
-    locationTitle: "Blue Ridge",
-    locationSubtitle: "Virginia, USA",
-  },
-  {
-    id: "event-ai-saas",
-    tag: "Hands-on Workshop",
-    month: "NOV",
-    day: "04",
-    title: "Full-Stack AI SaaS",
-    description:
-      "A deep-dive build session covering Next.js, API integrations, and shipping a monetization-ready micro-SaaS in one evening.",
-    image: "/bg.jpg",
-    locationTitle: "Lecture Hall 201",
-    locationSubtitle: "Campus Innovation Hub",
-  },
-  {
-    id: "event-demo-night",
-    tag: "Community Showcase",
-    month: "NOV",
-    day: "18",
-    title: "Indie Demo Night",
-    description:
-      "5-minute live demos from student founders and indie hackers. Honest feedback, live bug testing, and networking over coffee.",
-    image: "/bg.jpg",
-    locationTitle: "Main Seminar Hall",
-    locationSubtitle: "Hacker Lounge, Block 4",
-  },
-];
+import EventCard from "./EventCard";
+import { eventsList } from "@/lib/events";
 
 export default function Events() {
   return (
@@ -69,8 +31,8 @@ export default function Events() {
 
         {/* Events Cards Grid */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {upcomingEvents.map((event) => (
-            <EventCard key={event.id || event.title} event={event} />
+          {eventsList.map((event) => (
+            <EventCard key={event.id} event={event} />
           ))}
         </div>
       </div>
