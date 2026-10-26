@@ -51,6 +51,49 @@ export interface MailCampaign {
   openRate: string;
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  status: string;
+  stars: number;
+  githubUrl: string;
+  liveUrl?: string;
+}
+
+export interface EventPass {
+  ticketId: string;
+  title: string;
+  date: {
+    month: string;
+    day: string;
+  };
+  time: string;
+  location: string;
+  seatStatus: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  attendeeBatch: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  batch: string;
+  points: number;
+  isUser?: boolean;
+}
+
+export const CURRENT_USER = {
+  name: "Alex Chen",
+  batch: "Batch of 2027",
+  builderScore: 0,
+  rank: 0,
+  sprintsCount: 0,
+};
+
 export const ADMIN_USER = {
   name: "Abhay Sharma",
   email: "admin@ptsc.dev",
