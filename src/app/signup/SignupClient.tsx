@@ -76,8 +76,8 @@ export default function SignupClient() {
               Welcome to PTSC, <strong className="text-white">{fullName}</strong>. Your builder account has been registered for <span className="text-neutral-300 font-medium">{batch}</span>.
             </p>
           }
-          actionText="Explore Upcoming Events"
-          actionHref="/events"
+          actionText="Open Builder Dashboard"
+          actionHref="/dashboard"
         />
       ) : (
         <div className="w-full flex flex-col">

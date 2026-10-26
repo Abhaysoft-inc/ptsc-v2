@@ -70,8 +70,8 @@ export default function LoginClient() {
               You are signed in as <strong className="text-white">{email}</strong>. Ready to build?
             </p>
           }
-          actionText="Go to Events Hub"
-          actionHref="/events"
+          actionText="Open Builder Dashboard"
+          actionHref="/dashboard"
         />
       ) : (
         <div className="w-full flex flex-col">
