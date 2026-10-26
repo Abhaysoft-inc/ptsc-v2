@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Reveal from "@/components/motion/Reveal";
 
 export default function Hero() {
   return (
@@ -27,35 +28,41 @@ export default function Hero() {
       {/* Hero Content */}
       <div className="relative z-10 max-w-5xl mx-auto text-center flex flex-col items-center">
         {/* Main Headline */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-bold text-white tracking-[-0.035em] leading-[1.08] sm:leading-[1.1] max-w-4xl mx-auto drop-shadow-sm">
-          The best community for <br />
-          <span className="text-white">Indie Hackers</span>
-        </h1>
+        <Reveal onMount y={30} delay={0.1}>
+          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-bold text-white tracking-[-0.035em] leading-[1.08] sm:leading-[1.1] max-w-4xl mx-auto drop-shadow-sm">
+            The best community for <br />
+            <span className="text-white">Indie Hackers</span>
+          </h1>
+        </Reveal>
 
         {/* Subtitle Description */}
-        <p className="mt-5 sm:mt-6 text-sm sm:text-base md:text-[17px] text-neutral-300 font-normal leading-relaxed max-w-xl mx-auto tracking-[-0.01em]">
-          We&apos;re building a community of indie hackers to help each other succeed. <br className="hidden sm:inline" />
-          Get in touch with us to join the community.
-        </p>
+        <Reveal onMount delay={0.25}>
+          <p className="mt-5 sm:mt-6 text-sm sm:text-base md:text-[17px] text-neutral-300 font-normal leading-relaxed max-w-xl mx-auto tracking-[-0.01em]">
+            We&apos;re building a community of indie hackers to help each other succeed. <br className="hidden sm:inline" />
+            Get in touch with us to join the community.
+          </p>
+        </Reveal>
 
         {/* Call to Action Buttons */}
-        <div className="mt-8 sm:mt-10 flex flex-row items-center justify-center gap-4 sm:gap-6">
-          {/* Primary CTA: Solid White Button */}
-          <button
-            type="button"
-            className="rounded-lg bg-white hover:bg-neutral-200 text-black text-sm sm:text-[15px] font-semibold px-6 sm:px-7 py-3 transition-all duration-200 shadow-[0_2px_14px_rgba(255,255,255,0.12)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-          >
-            Join Community
-          </button>
+        <Reveal onMount delay={0.4}>
+          <div className="mt-8 sm:mt-10 flex flex-row items-center justify-center gap-4 sm:gap-6">
+            {/* Primary CTA: Solid White Button */}
+            <button
+              type="button"
+              className="rounded-lg bg-white hover:bg-neutral-200 text-black text-sm sm:text-[15px] font-semibold px-6 sm:px-7 py-3 transition-all duration-200 shadow-[0_2px_14px_rgba(255,255,255,0.12)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              Join Community
+            </button>
 
-          {/* Secondary CTA: Clean Text / Link */}
-          <button
-            type="button"
-            className="text-white hover:text-neutral-300 text-sm sm:text-[15px] font-medium px-4 py-3 transition-colors cursor-pointer"
-          >
-            Add your product
-          </button>
-        </div>
+            {/* Secondary CTA: Clean Text / Link */}
+            <button
+              type="button"
+              className="text-white hover:text-neutral-300 text-sm sm:text-[15px] font-medium px-4 py-3 transition-colors cursor-pointer"
+            >
+              Add your product
+            </button>
+          </div>
+        </Reveal>
       </div>
     </section>
   );

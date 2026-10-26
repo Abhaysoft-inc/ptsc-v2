@@ -16,6 +16,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { EventData } from "@/lib/events";
+import Reveal from "@/components/motion/Reveal";
 
 interface EventDetailClientProps {
   event: EventData;
@@ -97,7 +98,7 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
         </div>
 
         {/* Two-Column Event Details Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 items-start">
+        <Reveal onMount y={28} className="grid grid-cols-1 md:grid-cols-12 gap-10 lg:gap-14 items-start">
           {/* Left Column: Event Card Image, Register Button, WhatsApp & Rulebook */}
           <div className="md:col-span-5 flex flex-col items-center sm:items-start max-w-sm mx-auto md:max-w-none w-full">
             {/* Square Poster Card */}
@@ -268,7 +269,7 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
 
       {/* Rulebook Modal */}

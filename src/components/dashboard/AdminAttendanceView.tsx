@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { AttendanceRecord, AdminEvent } from "@/lib/dashboard";
+import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminAttendanceViewProps {
   attendance: AttendanceRecord[];
@@ -70,7 +71,7 @@ export default function AdminAttendanceView({
   });
 
   return (
-    <div className="space-y-6">
+    <StaggerList className="space-y-6">
       {/* 1. Quick Scanner & Ticket Input Strip */}
       <div className="p-6 rounded-2xl bg-[#121215] border border-white/15 shadow-xl">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-6">
@@ -234,6 +235,6 @@ export default function AdminAttendanceView({
           </table>
         </div>
       </div>
-    </div>
+    </StaggerList>
   );
 }

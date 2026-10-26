@@ -12,6 +12,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { MailCampaign, INITIAL_MAILS } from "@/lib/dashboard";
+import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminMailViewProps {
   campaigns: MailCampaign[];
@@ -68,7 +69,7 @@ export default function AdminMailView({
   };
 
   return (
-    <div className="space-y-8">
+    <StaggerList className="space-y-8">
       {/* 1. Compose Broadcast Box */}
       <div className="p-6 sm:p-8 rounded-2xl bg-[#111113] border border-white/15 shadow-xl">
         <div className="flex items-center justify-between pb-4 mb-6 border-b border-white/[0.08]">
@@ -224,6 +225,6 @@ export default function AdminMailView({
           ))}
         </div>
       </div>
-    </div>
+    </StaggerList>
   );
 }

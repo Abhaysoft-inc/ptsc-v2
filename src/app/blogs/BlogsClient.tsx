@@ -18,6 +18,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { blogPosts, BlogPost } from "@/lib/blogs";
+import Reveal from "@/components/motion/Reveal";
 
 const CATEGORIES = [
   "All",
@@ -89,7 +90,7 @@ export default function BlogsClient() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-1 bg-gradient-to-r from-transparent via-neutral-300/30 to-transparent blur-xs z-10" />
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-6xl mx-auto w-full">
+        <Reveal onMount y={30} delay={0.1} className="relative z-10 max-w-6xl mx-auto w-full">
           {/* Page Title */}
           <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-[68px] font-bold text-white tracking-tight leading-[1.08] max-w-4xl drop-shadow-md">
             Stories & Insights from the Builders
@@ -136,7 +137,7 @@ export default function BlogsClient() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* MAIN ARTICLES SECTION */}

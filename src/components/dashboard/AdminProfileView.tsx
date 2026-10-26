@@ -13,6 +13,7 @@ import {
   Save,
 } from "lucide-react";
 import { ADMIN_USER } from "@/lib/dashboard";
+import StaggerList from "@/components/motion/StaggerList";
 
 export default function AdminProfileView() {
   const [name, setName] = useState(ADMIN_USER.name);
@@ -37,7 +38,7 @@ export default function AdminProfileView() {
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <StaggerList className="space-y-8 max-w-4xl">
       {/* 1. Admin Header Profile Card */}
       <div className="p-6 sm:p-8 rounded-2xl bg-[#111113] border border-white/15 shadow-xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -198,6 +199,6 @@ export default function AdminProfileView() {
           </button>
         </div>
       </div>
-    </div>
+    </StaggerList>
   );
 }

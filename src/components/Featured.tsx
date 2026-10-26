@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { ArrowUpRight, Sparkles } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 interface FeaturedItem {
   id: string;
@@ -46,7 +47,7 @@ export default function Featured() {
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-10 border-b border-white/[0.06]">
+        <Reveal className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-10 border-b border-white/[0.06]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-neutral-900 border border-white/10 px-3.5 py-1 text-xs font-medium text-neutral-300 mb-3">
               <Sparkles className="w-3.5 h-3.5 text-neutral-400" />
@@ -60,14 +61,14 @@ export default function Featured() {
               and monetize your digital products.
             </p>
           </div>
-        </div>
+        </Reveal>
 
         {/* 3 Featured Cards in a Row */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {featuredItems.map((item) => (
+          {featuredItems.map((item, i) => (
+            <Reveal key={item.id} className="h-full" delay={(i % 3) * 0.1}>
             <div
-              key={item.id}
-              className="group relative flex flex-col justify-between rounded-2xl bg-[#121214] border border-white/[0.08] hover:border-white/20 overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
+              className="h-full group relative flex flex-col justify-between rounded-2xl bg-[#121214] border border-white/[0.08] hover:border-white/20 overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
             >
               {/* Card Image */}
               <div className="relative w-full aspect-[16/10] overflow-hidden bg-neutral-900">
@@ -104,6 +105,7 @@ export default function Featured() {
                 </div>
               </div>
             </div>
+            </Reveal>
           ))}
         </div>
       </div>

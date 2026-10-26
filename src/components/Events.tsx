@@ -3,6 +3,7 @@
 import { Users } from "lucide-react";
 import EventCard from "./EventCard";
 import { eventsList } from "@/lib/events";
+import Reveal from "@/components/motion/Reveal";
 
 export default function Events() {
   return (
@@ -12,7 +13,7 @@ export default function Events() {
     >
       <div className="max-w-6xl mx-auto">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-10 border-b border-white/[0.06]">
+        <Reveal className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-10 border-b border-white/[0.06]">
           <div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
               Upcoming Events
@@ -27,12 +28,14 @@ export default function Events() {
             <Users className="w-4 h-4 text-neutral-500" />
             <span>Over 350+ hackers joined past sessions</span>
           </div>
-        </div>
+        </Reveal>
 
         {/* Events Cards Grid */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {eventsList.map((event) => (
-            <EventCard key={event.id} event={event} />
+          {eventsList.map((event, i) => (
+            <Reveal key={event.id} className="h-full" delay={(i % 3) * 0.1}>
+              <EventCard event={event} />
+            </Reveal>
           ))}
         </div>
       </div>

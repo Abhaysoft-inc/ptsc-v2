@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AdminEvent, AdminUser, AttendanceRecord } from "@/lib/dashboard";
 import { AdminDashboardTab } from "./DashboardSidebar";
+import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminOverviewViewProps {
   events: AdminEvent[];
@@ -44,7 +45,7 @@ export default function AdminOverviewView({
   const checkedInCount = attendance.filter((a) => a.status === "Checked In" || a.status === "Late").length;
 
   return (
-    <div className="space-y-8">
+    <StaggerList className="space-y-8">
       {/* 1. Header Banner */}
       <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-[#141418] via-[#111114] to-[#18181f] border border-white/10 relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -268,6 +269,6 @@ export default function AdminOverviewView({
           </div>
         </div>
       </div>
-    </div>
+    </StaggerList>
   );
 }

@@ -14,6 +14,8 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { teamMembers, TeamMember } from "@/lib/team";
+import { AnimatePresence, motion } from "motion/react";
+import Reveal from "@/components/motion/Reveal";
 
 const ALL_BATCHES = ["2026", "2027", "2028", "2029"] as const;
 
@@ -78,7 +80,7 @@ export default function TeamClient() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-1 bg-gradient-to-r from-transparent via-neutral-300/30 to-transparent blur-xs z-10" />
 
         {/* Hero Content */}
-        <div className="relative z-10 max-w-6xl mx-auto w-full">
+        <Reveal onMount y={30} delay={0.1} className="relative z-10 max-w-6xl mx-auto w-full">
           {/* Status Badge */}
 
 
@@ -120,7 +122,7 @@ export default function TeamClient() {
             </a>
 
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* BATCH-WISE MEMBERS DIRECTORY */}
@@ -166,15 +168,31 @@ export default function TeamClient() {
                   </button>
 
                   {/* Collapsible Content: Members Grid (Open directly on page) */}
+                  <AnimatePresence initial={false}>
                   {isExpanded && (
-                    <div className="mt-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-6 pt-2">
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6 sm:gap-8">
-                        {members.map((member) => {
+                        {members.map((member, i) => {
                           const imgSrc = memberImages[member.id] || "/bg.jpg";
 
                           return (
-                            <div
+                            <motion.div
                               key={member.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: 0.5,
+                                delay: 0.1 + Math.min(i, 11) * 0.05,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
                               className="group flex flex-col select-none"
                             >
                               {/* Raw Image: 0 Roundness, no border wrapper */}
@@ -197,12 +215,14 @@ export default function TeamClient() {
                                   {member.name}
                                 </h4>
                               </div>
-                            </div>
+                            </motion.div>
                           );
                         })}
                       </div>
-                    </div>
+                      </div>
+                    </motion.div>
                   )}
+                  </AnimatePresence>
                 </div>
               );
             })}

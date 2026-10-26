@@ -9,6 +9,7 @@ import {
   Ban,
 } from "lucide-react";
 import { AdminUser } from "@/lib/dashboard";
+import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminUsersViewProps {
   users: AdminUser[];
@@ -35,7 +36,7 @@ export default function AdminUsersView({
   });
 
   return (
-    <div className="space-y-6">
+    <StaggerList className="space-y-6">
       {/* Top Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Search */}
@@ -192,6 +193,6 @@ export default function AdminUsersView({
           <p className="text-xs text-neutral-400 mt-1">Try adjusting the search query or filter.</p>
         </div>
       )}
-    </div>
+    </StaggerList>
   );
 }

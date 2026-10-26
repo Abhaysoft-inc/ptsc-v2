@@ -13,6 +13,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import { eventsList, getHeroFeaturedEvent } from "@/lib/events";
+import Reveal from "@/components/motion/Reveal";
 
 export default function EventsPage() {
   const heroData = getHeroFeaturedEvent();
@@ -46,7 +47,7 @@ export default function EventsPage() {
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-1 bg-gradient-to-r from-transparent via-neutral-300/30 to-transparent blur-xs z-10" />
 
           {/* Hero Content */}
-          <div className="relative z-10 max-w-6xl mx-auto w-full">
+          <Reveal onMount y={30} delay={0.1} className="relative z-10 max-w-6xl mx-auto w-full">
             {/* Status Badge */}
             <div className="inline-flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-md border border-white/15 px-3.5 py-1.5 text-xs font-semibold mb-4 text-white">
               {isUpcoming ? (
@@ -116,7 +117,7 @@ export default function EventsPage() {
                 <span>View Event Details</span>
               </Link>
             </div>
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -147,8 +148,10 @@ export default function EventsPage() {
 
           {/* 3-Column Zero-Bezel Events Grid */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {eventsList.map((event) => (
-              <EventCard key={event.id} event={event} />
+            {eventsList.map((event, i) => (
+              <Reveal key={event.id} className="h-full" delay={(i % 3) * 0.1}>
+                <EventCard event={event} />
+              </Reveal>
             ))}
           </div>
         </div>

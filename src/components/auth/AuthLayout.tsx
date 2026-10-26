@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import Reveal from "@/components/motion/Reveal";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -56,7 +57,8 @@ export default function AuthLayout({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[450px] bg-white/[0.03] rounded-full blur-3xl pointer-events-none" />
 
       {/* WIDESCREEN LANDSCAPE AUTH CARD */}
-      <main className="relative z-10 w-full max-w-md sm:max-w-xl lg:max-w-5xl bg-[#111113] border border-white/10 rounded-3xl overflow-hidden shadow-[0_20px_70px_rgba(0,0,0,0.85)] grid grid-cols-1 lg:grid-cols-12 min-h-0 lg:min-h-[580px] my-auto">
+      <Reveal onMount y={28} className="relative z-10 w-full max-w-md sm:max-w-xl lg:max-w-5xl my-auto">
+        <main className="relative z-10 w-full bg-[#111113] border border-white/10 rounded-3xl overflow-hidden shadow-[0_20px_70px_rgba(0,0,0,0.85)] grid grid-cols-1 lg:grid-cols-12 min-h-0 lg:min-h-[580px] h-full">
         {/* Left Landscape Column (Visual, Identity, & Community Badge - Hidden on mobile) */}
         <div className="hidden lg:flex lg:col-span-5 relative flex-col justify-between p-8 sm:p-10 lg:p-12 lg:border-r border-white/10 overflow-hidden select-none">
           {/* Background Image with Dark Vignette */}
@@ -102,6 +104,7 @@ export default function AuthLayout({
           {children}
         </div>
       </main>
+      </Reveal>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 import { AdminEvent } from "@/lib/dashboard";
+import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminEventsViewProps {
   events: AdminEvent[];
@@ -50,7 +51,7 @@ export default function AdminEventsView({
   };
 
   return (
-    <div className="space-y-6">
+    <StaggerList className="space-y-6">
       {/* Action Header & Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         {/* Search */}
@@ -210,6 +211,6 @@ export default function AdminEventsView({
           <p className="text-xs text-neutral-400 mt-1">Try resetting the filter or search query.</p>
         </div>
       )}
-    </div>
+    </StaggerList>
   );
 }
