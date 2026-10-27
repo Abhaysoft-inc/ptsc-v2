@@ -98,21 +98,6 @@ export const POSTS = [
   "Event Head",
   "Executive members",
 ] as const;
-export type MailType = "Participation" | "Certificate";
-export type MailStatus = "sent" | "pending" | "failed";
-
-/** One email to one recipient for an event. */
-export interface MailLog {
-  id: string;
-  eventId: string;
-  recipientName: string;
-  recipientEmail: string;
-  emailType: MailType;
-  status: MailStatus;
-  error?: string;
-  /** Preformatted so server and client render the same text. */
-  createdAt: string;
-}
 export interface Project {
   id: string;
   title: string;
@@ -307,45 +292,6 @@ export const INITIAL_USERS: AdminUser[] = [
     role: "normal",
     batch: 2027,
     post: "",
-  },
-];
-export const INITIAL_MAIL_LOGS: MailLog[] = [
-  {
-    id: "log-1",
-    eventId: "evt-1",
-    recipientName: "Alex Chen",
-    recipientEmail: "alex@campus.edu",
-    emailType: "Participation",
-    status: "sent",
-    createdAt: "Jan 25, 2026, 05:02 PM",
-  },
-  {
-    id: "log-2",
-    eventId: "evt-1",
-    recipientName: "Tanvi Saxena",
-    recipientEmail: "tanvi@campus.edu",
-    emailType: "Participation",
-    status: "sent",
-    createdAt: "Jan 25, 2026, 05:02 PM",
-  },
-  {
-    id: "log-3",
-    eventId: "evt-1",
-    recipientName: "Rohan Varma",
-    recipientEmail: "rohan@campus.edu",
-    emailType: "Participation",
-    status: "sent",
-    createdAt: "Jan 25, 2026, 05:02 PM",
-  },
-  {
-    id: "log-4",
-    eventId: "evt-1",
-    recipientName: "Ishaan Mehta",
-    recipientEmail: "ishaan@campus.edu",
-    emailType: "Participation",
-    status: "failed",
-    error: "Mailbox full (452 4.2.2)",
-    createdAt: "Jan 25, 2026, 05:02 PM",
   },
 ];
 export type DashboardRole = "admin" | "member" | "normal";

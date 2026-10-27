@@ -74,13 +74,10 @@ export function getVisibleTabs(role: DashboardRole) {
 
 interface DashboardSidebarProps {
   role: DashboardRole;
-  /** Tabs that should show an attention dot (e.g. pending items). */
-  alertTabs?: DashboardTab[];
 }
 
 export default function DashboardSidebar({
   role,
-  alertTabs = [],
 }: DashboardSidebarProps) {
   const activeTab = getTabFromPath(usePathname());
   const router = useRouter();
@@ -95,7 +92,6 @@ export default function DashboardSidebar({
     }
   };
   const visibleTabs = getVisibleTabs(role);
-  const alerts = new Set(alertTabs);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 w-[64px] bg-[#0d0d10] border-r border-white/[0.08] flex flex-col items-center py-4">
@@ -138,10 +134,6 @@ export default function DashboardSidebar({
               }`}
             >
               <Icon className="w-[18px] h-[18px]" />
-
-              {alerts.has(tab.id) && !isActive && (
-                <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-amber-400" />
-              )}
 
               {/* Hover label */}
               <span className="pointer-events-none absolute left-[calc(100%+10px)] z-50 whitespace-nowrap px-2 py-1 rounded-md bg-[#1c1c20] border border-white/10 text-[11px] font-medium text-white opacity-0 translate-x-(-1) group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-xl">

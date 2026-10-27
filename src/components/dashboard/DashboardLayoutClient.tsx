@@ -6,7 +6,6 @@ import { motion } from "motion/react";
 import DashboardSidebar, {
   getTabFromPath,
   getVisibleTabs,
-  type DashboardTab,
 } from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardTopBar from "@/components/dashboard/DashboardTopBar";
@@ -22,8 +21,7 @@ export default function DashboardLayoutClient({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { events, mailLogs, registrations, role, setRole, currentUser } =
-    useAdminDashboard();
+  const { role, setRole, currentUser } = useAdminDashboard();
 
   const visibleTabs = getVisibleTabs(role);
   const routeTab = getTabFromPath(pathname);
@@ -35,23 +33,9 @@ export default function DashboardLayoutClient({
     if (!allowed) router.replace(firstAllowedHref);
   }, [allowed, firstAllowedHref, router]);
 
-  // Icon rail has no room for counts, so flag tabs that have work waiting.
-  const alertTabs: DashboardTab[] = [];
-  const liveEventIds = new Set(
-    events.filter((e) => e.status === "Active").map((e) => e.id)
-  );
-  if (
-    registrations.some(
-      (r) => !r.deleted && !r.attended && liveEventIds.has(r.eventId)
-    )
-  ) {
-    alertTabs.push("attendance");
-  }
-  if (mailLogs.some((l) => l.status === "failed")) alertTabs.push("mails");
-
   return (
     <div className="relative min-h-screen bg-[#080809] text-white selection:bg-white selection:text-black overflow-x-clip">
-      <DashboardSidebar role={role} alertTabs={alertTabs} />
+      <DashboardSidebar role={role} />
 
       <div className="pl-[64px] min-h-screen flex flex-col">
         <DashboardTopBar

@@ -5,14 +5,11 @@ import type { SessionUser } from "@/lib/auth/types";
 import {
   INITIAL_EVENTS,
   INITIAL_USERS,
-  INITIAL_MAIL_LOGS,
   INITIAL_REGISTRATIONS,
   INITIAL_MEDIA,
   INITIAL_ADVISORS,
   AdminEvent,
   AdminUser,
-  MailLog,
-  MailType,
   Registration,
   MediaItem,
   FacultyAdvisor,
@@ -22,7 +19,6 @@ import {
 interface AdminDashboardContextType {
   events: AdminEvent[];
   users: AdminUser[];
-  mailLogs: MailLog[];
   registrations: Registration[];
   media: MediaItem[];
   advisors: FacultyAdvisor[];
@@ -38,19 +34,6 @@ interface AdminDashboardContextType {
     eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
   ) => void;
   handleDeleteEvent: (id: string) => void;
-  /** Persists present/absent for the given registration ids. */
-  handleSaveAttendance: (updates: Record<string, boolean>) => void;
-  /**
-   * Queues `type` emails for everyone marked present at the event. People who
-   * already have a sent or pending email of that type are skipped.
-   */
-  handleSendMail: (
-    eventId: string,
-    type: MailType
-  ) => { queued: number; skipped: number };
-  handleResendMail: (logId: string) => void;
-  handleDeleteRegistration: (id: string) => void;
-  handleRestoreRegistration: (id: string) => void;
   handleAddMedia: (item: Omit<MediaItem, "id" | "uploadedAt">) => void;
   handleDeleteMedia: (id: string) => void;
   handleSaveAdvisor: (advisor: Omit<FacultyAdvisor, "id"> & { id?: string }) => void;
@@ -72,9 +55,9 @@ export function AdminDashboardProvider({
   // Sample data, only used for the Overview count. The Users page loads real
   // accounts from /api/admin/users.
   const [users] = useState<AdminUser[]>(INITIAL_USERS);
-  const [mailLogs, setMailLogs] = useState<MailLog[]>(INITIAL_MAIL_LOGS);
-  const [registrations, setRegistrations] =
-    useState<Registration[]>(INITIAL_REGISTRATIONS);
+  // Sample data, only used for the Overview numbers. The Registrations and
+  // Attendance pages load real data from the API.
+  const [registrations] = useState<Registration[]>(INITIAL_REGISTRATIONS);
   const [media, setMedia] = useState<MediaItem[]>(INITIAL_MEDIA);
   const [advisors, setAdvisors] = useState<FacultyAdvisor[]>(INITIAL_ADVISORS);
   // No auth backend yet; the sidebar lets you preview each role's tab access.
@@ -95,104 +78,6 @@ export function AdminDashboardProvider({
   const handleDeleteEvent = (id: string) => {
     setEvents((prev) => prev.filter((e) => e.id !== id));
   };
-
-  const handleSaveAttendance = (updates: Record<string, boolean>) => {
-    setRegistrations((prev) =>
-      prev.map((r) => (r.id in updates ? { ...r, attended: updates[r.id] } : r))
-    );
-  };
-
-  // No mail backend yet: queued emails flip to "sent" after a short delay.
-  const settleMail = (ids: string[]) => {
-    setTimeout(() => {
-      setMailLogs((prev) =>
-        prev.map((log) =>
-          ids.includes(log.id)
-            ? { ...log, status: "sent", error: undefined }
-            : log
-        )
-      );
-    }, 1500);
-  };
-
-  const handleSendMail = (eventId: string, type: MailType) => {
-    const stamp = new Date().toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    // One email per attendee: every team member, or the lone registrant.
-    const attendees = registrations
-      .filter((r) => r.eventId === eventId && !r.deleted && r.attended)
-      .flatMap((r) =>
-        r.type === "team" && r.participants?.length
-          ? r.participants.map((p) => ({ name: p.name, email: p.email }))
-          : [{ name: r.name, email: r.email }]
-      );
-
-    const alreadyMailed = new Set(
-      mailLogs
-        .filter(
-          (l) =>
-            l.eventId === eventId &&
-            l.emailType === type &&
-            l.status !== "failed"
-        )
-        .map((l) => l.recipientEmail)
-    );
-
-    const fresh = attendees.filter((a) => !alreadyMailed.has(a.email));
-    const created: MailLog[] = fresh.map((a, i) => ({
-      id: `log-${Date.now()}-${i}`,
-      eventId,
-      recipientName: a.name,
-      recipientEmail: a.email,
-      emailType: type,
-      status: "pending",
-      createdAt: stamp,
-    }));
-
-    if (created.length > 0) {
-      // A failed email being re-sent as a new one replaces the old failed row.
-      const retried = new Set(created.map((c) => c.recipientEmail));
-      setMailLogs((prev) => [
-        ...created,
-        ...prev.filter(
-          (l) =>
-            !(
-              l.eventId === eventId &&
-              l.emailType === type &&
-              l.status === "failed" &&
-              retried.has(l.recipientEmail)
-            )
-        ),
-      ]);
-      settleMail(created.map((c) => c.id));
-    }
-
-    return { queued: created.length, skipped: attendees.length - created.length };
-  };
-
-  const handleResendMail = (logId: string) => {
-    setMailLogs((prev) =>
-      prev.map((l) =>
-        l.id === logId ? { ...l, status: "pending", error: undefined } : l
-      )
-    );
-    settleMail([logId]);
-  };
-
-  const setRegistrationDeleted = (id: string, deleted: boolean) => {
-    setRegistrations((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, deleted } : r))
-    );
-  };
-
-  const handleDeleteRegistration = (id: string) => setRegistrationDeleted(id, true);
-  const handleRestoreRegistration = (id: string) => setRegistrationDeleted(id, false);
 
   const handleAddMedia = (item: Omit<MediaItem, "id" | "uploadedAt">) => {
     const uploadedAt = new Date().toLocaleDateString("en-US", {
@@ -233,7 +118,6 @@ export function AdminDashboardProvider({
       value={{
         events,
         users,
-        mailLogs,
         registrations,
         media,
         advisors,
@@ -242,11 +126,6 @@ export function AdminDashboardProvider({
         setRole,
         handleCreateEvent,
         handleDeleteEvent,
-        handleSaveAttendance,
-        handleSendMail,
-        handleResendMail,
-        handleDeleteRegistration,
-        handleRestoreRegistration,
         handleAddMedia,
         handleDeleteMedia,
         handleSaveAdvisor,

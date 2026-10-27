@@ -9,26 +9,13 @@ import AdminUsersView, {
   type UsersPageInfo,
 } from "@/components/dashboard/AdminUsersView";
 import type { AdminUser } from "@/lib/dashboard";
+import { api } from "@/lib/api-client";
 
 type Edits = Pick<AdminUser, "role" | "batch" | "post">;
 
 interface UsersResponse extends UsersPageInfo {
   users: AdminUser[];
   currentUserId: string;
-}
-
-// Calls an admin API route; returns the parsed body, or throws with the
-// server's message.
-async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new Error(data?.message ?? "Something went wrong. Please try again.");
-  }
-  return data as T;
 }
 
 function UsersRoute() {

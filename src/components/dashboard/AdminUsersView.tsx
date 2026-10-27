@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Search, Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import {
   AdminUser,
   DashboardRole,
@@ -10,15 +10,13 @@ import {
 } from "@/lib/dashboard";
 import StaggerList from "@/components/motion/StaggerList";
 import PillTabs from "@/components/dashboard/PillTabs";
+import Pagination from "@/components/dashboard/Pagination";
+import type { PageInfo } from "@/lib/types/admin";
 
 export const USER_STATUS_FILTERS = ["All", "Pending", "Approved"] as const;
 export type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number];
 
-export interface UsersPageInfo {
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
+export interface UsersPageInfo extends PageInfo {
   /** Pending requests across all pages, not just this one. */
   pendingCount: number;
 }
@@ -92,10 +90,8 @@ export default function AdminUsersView({
     }
   };
 
-  const { page, pageSize, total, totalPages, pendingCount } = pageInfo;
+  const { pendingCount } = pageInfo;
   const visible = users;
-  const firstShown = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const lastShown = Math.min(page * pageSize, total);
 
   const current = (u: AdminUser): Edits => ({
     role: edits[u.id]?.role ?? u.role,
@@ -352,83 +348,13 @@ export default function AdminUsersView({
         </div>
       )}
 
-      {/* Pagination */}
-      {total > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400">
-          <p className="flex items-center gap-2">
-            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            <span>
-              Showing{" "}
-              <span className="text-white font-medium">
-                {firstShown}–{lastShown}
-              </span>{" "}
-              of <span className="text-white font-medium">{total}</span>{" "}
-              {total === 1 ? "user" : "users"}
-            </span>
-          </p>
-
-          {totalPages > 1 && (
-            <nav aria-label="Users pages" className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onPageChange(page - 1)}
-                disabled={page <= 1 || loading}
-                aria-label="Previous page"
-                className="p-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              {pageNumbers(page, totalPages).map((n, i) =>
-                n === null ? (
-                  <span key={`gap-${i}`} className="px-1.5 text-neutral-600">
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => onPageChange(n)}
-                    disabled={loading}
-                    aria-current={n === page ? "page" : undefined}
-                    className={`min-w-8 h-8 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      n === page
-                        ? "bg-white text-black"
-                        : "text-neutral-300 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                )
-              )}
-
-              <button
-                type="button"
-                onClick={() => onPageChange(page + 1)}
-                disabled={page >= totalPages || loading}
-                aria-label="Next page"
-                className="p-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </nav>
-          )}
-        </div>
-      )}
+      <Pagination
+        info={pageInfo}
+        onPageChange={onPageChange}
+        loading={loading}
+        noun={["user", "users"]}
+      />
     </StaggerList>
   );
 }
 
-// Page buttons with gaps, e.g. 1 … 4 5 6 … 12. null marks a gap.
-function pageNumbers(page: number, totalPages: number): (number | null)[] {
-  const wanted = new Set([1, totalPages, page - 1, page, page + 1]);
-  const sorted = [...wanted]
-    .filter((n) => n >= 1 && n <= totalPages)
-    .sort((a, b) => a - b);
-  const out: (number | null)[] = [];
-  sorted.forEach((n, i) => {
-    if (i > 0 && n - sorted[i - 1] > 1) out.push(n - sorted[i - 1] === 2 ? n - 1 : null);
-    out.push(n);
-  });
-  return out;
-}
