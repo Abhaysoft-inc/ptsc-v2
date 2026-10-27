@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { ADMIN_USER, type DashboardRole } from "@/lib/dashboard";
+import type { DashboardRole } from "@/lib/dashboard";
+import type { SessionUser } from "@/lib/auth/types";
 
 interface DashboardTopBarProps {
+  user: SessionUser;
   role: DashboardRole;
   onChangeRole: (role: DashboardRole) => void;
+  /** Admins can preview what the lower roles see. */
+  canPreviewRoles: boolean;
 }
 
 const ROLES: { value: DashboardRole; label: string }[] = [
@@ -22,9 +25,13 @@ const LINKS = [
 ];
 
 export default function DashboardTopBar({
+  user,
   role,
   onChangeRole,
+  canPreviewRoles,
 }: DashboardTopBarProps) {
+  const initials = `${user.firstName[0] ?? ""}${user.lastName[0] ?? ""}`.toUpperCase();
+
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 px-5 sm:px-10 h-16 bg-[#080809]/80 backdrop-blur-md border-b border-white/[0.08]">
       <Link
@@ -52,35 +59,31 @@ export default function DashboardTopBar({
           ))}
         </nav>
 
-        {/* No auth backend yet: lets you preview what each role can see. */}
-        <label className="flex items-center gap-2 text-[11px] text-neutral-500">
-          <span className="hidden sm:inline uppercase tracking-wider font-bold">
-            View as
-          </span>
-          <select
-            value={role}
-            onChange={(e) => onChangeRole(e.target.value as DashboardRole)}
-            className="px-2.5 py-1.5 bg-[#18181b] border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
-          >
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {canPreviewRoles && (
+          <label className="flex items-center gap-2 text-[11px] text-neutral-500">
+            <span className="hidden sm:inline uppercase tracking-wider font-bold">
+              View as
+            </span>
+            <select
+              value={role}
+              onChange={(e) => onChangeRole(e.target.value as DashboardRole)}
+              className="px-2.5 py-1.5 bg-[#18181b] border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <div
-          className="relative w-8 h-8 rounded-full overflow-hidden bg-neutral-800 border border-white/20 shrink-0"
-          title={`${ADMIN_USER.name} · ${ADMIN_USER.email}`}
+          className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-[11px] font-semibold text-white shrink-0 select-none"
+          title={`${user.firstName} ${user.lastName} · ${user.email}`}
+          aria-label={`Signed in as ${user.firstName} ${user.lastName}`}
         >
-          <Image
-            src={ADMIN_USER.avatar}
-            alt={ADMIN_USER.name}
-            fill
-            sizes="32px"
-            className="object-cover"
-          />
+          {initials}
         </div>
       </div>
     </header>

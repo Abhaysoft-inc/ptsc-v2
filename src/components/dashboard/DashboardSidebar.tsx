@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -83,6 +83,17 @@ export default function DashboardSidebar({
   alertTabs = [],
 }: DashboardSidebarProps) {
   const activeTab = getTabFromPath(usePathname());
+  const router = useRouter();
+
+  // Clears the session cookie on the server, then leaves the dashboard.
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+    }
+  };
   const visibleTabs = getVisibleTabs(role);
   const alerts = new Set(alertTabs);
 
@@ -142,14 +153,15 @@ export default function DashboardSidebar({
       </nav>
 
       {/* Logout */}
-      <Link
-        href="/login"
+      <button
+        type="button"
+        onClick={handleLogout}
         title="Logout"
         aria-label="Logout"
-        className="mt-2 w-11 h-11 rounded-xl flex items-center justify-center text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        className="mt-2 w-11 h-11 rounded-xl flex items-center justify-center text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
       >
         <LogOut className="w-[18px] h-[18px]" />
-      </Link>
+      </button>
     </aside>
   );
 }

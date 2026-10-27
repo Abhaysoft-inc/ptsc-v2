@@ -22,7 +22,8 @@ export default function DashboardLayoutClient({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { events, mailLogs, registrations, role, setRole } = useAdminDashboard();
+  const { events, mailLogs, registrations, role, setRole, currentUser } =
+    useAdminDashboard();
 
   const visibleTabs = getVisibleTabs(role);
   const routeTab = getTabFromPath(pathname);
@@ -53,7 +54,13 @@ export default function DashboardLayoutClient({
       <DashboardSidebar role={role} alertTabs={alertTabs} />
 
       <div className="pl-[64px] min-h-screen flex flex-col">
-        <DashboardTopBar role={role} onChangeRole={setRole} />
+        <DashboardTopBar
+          user={currentUser}
+          role={role}
+          onChangeRole={setRole}
+          // Only real admins may preview a lower role; everyone else sees their own.
+          canPreviewRoles={currentUser.role === "admin"}
+        />
 
         <main className="flex-1 px-5 sm:px-10 py-8 sm:py-10">
           <div className="max-w-7xl mx-auto">

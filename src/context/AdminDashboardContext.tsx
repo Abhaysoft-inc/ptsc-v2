@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState } from "react";
+import type { SessionUser } from "@/lib/auth/types";
 import {
   INITIAL_EVENTS,
   INITIAL_USERS,
@@ -25,6 +26,12 @@ interface AdminDashboardContextType {
   registrations: Registration[];
   media: MediaItem[];
   advisors: FacultyAdvisor[];
+  /** The signed-in user. */
+  currentUser: SessionUser;
+  /**
+   * The role the dashboard is currently showing. Starts as the user's real
+   * role; admins may switch it to preview what lower roles see.
+   */
   role: DashboardRole;
   setRole: (role: DashboardRole) => void;
   handleCreateEvent: (
@@ -64,7 +71,13 @@ const AdminDashboardContext = createContext<AdminDashboardContextType | undefine
   undefined
 );
 
-export function AdminDashboardProvider({ children }: { children: React.ReactNode }) {
+export function AdminDashboardProvider({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user: SessionUser;
+}) {
   const [events, setEvents] = useState<AdminEvent[]>(INITIAL_EVENTS);
   const [users, setUsers] = useState<AdminUser[]>(INITIAL_USERS);
   const [allowSignup, setAllowSignup] = useState(true);
@@ -74,7 +87,7 @@ export function AdminDashboardProvider({ children }: { children: React.ReactNode
   const [media, setMedia] = useState<MediaItem[]>(INITIAL_MEDIA);
   const [advisors, setAdvisors] = useState<FacultyAdvisor[]>(INITIAL_ADVISORS);
   // No auth backend yet; the sidebar lets you preview each role's tab access.
-  const [role, setRole] = useState<DashboardRole>("admin");
+  const [role, setRole] = useState<DashboardRole>(user.role);
 
   const handleCreateEvent = (
     eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
@@ -250,6 +263,7 @@ export function AdminDashboardProvider({ children }: { children: React.ReactNode
         registrations,
         media,
         advisors,
+        currentUser: user,
         role,
         setRole,
         handleCreateEvent,

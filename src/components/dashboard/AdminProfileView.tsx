@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import {
   Key,
   Lock,
@@ -11,14 +10,15 @@ import {
   Copy,
   Save,
 } from "lucide-react";
-import { ADMIN_USER } from "@/lib/dashboard";
+import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import StaggerList from "@/components/motion/StaggerList";
 
 export default function AdminProfileView() {
-  const [name, setName] = useState(ADMIN_USER.name);
-  const [email, setEmail] = useState(ADMIN_USER.email);
+  const { currentUser } = useAdminDashboard();
+  const [name, setName] = useState(`${currentUser.firstName} ${currentUser.lastName}`);
+  const [email, setEmail] = useState(currentUser.email);
   const [department, setDepartment] = useState("Computer Science & Engineering");
-  const [twoFactor, setTwoFactor] = useState(ADMIN_USER.twoFactorEnabled);
+  const [twoFactor, setTwoFactor] = useState(true);
   const [copiedKey, setCopiedKey] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -42,19 +42,17 @@ export default function AdminProfileView() {
       <div className="p-6 sm:p-8 rounded-2xl bg-[#111113] border border-white/15 shadow-xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-5">
-            <div className="relative w-16 h-16 rounded-none bg-neutral-800 border border-white/20 overflow-hidden shrink-0">
-              <Image
-                src={ADMIN_USER.avatar}
-                alt={name}
-                fill
-                className="object-cover rounded-none"
-              />
+            <div
+              className="w-16 h-16 bg-neutral-800 border border-white/20 flex items-center justify-center text-xl font-semibold text-white shrink-0 select-none"
+              aria-hidden="true"
+            >
+              {`${currentUser.firstName[0] ?? ""}${currentUser.lastName[0] ?? ""}`.toUpperCase()}
             </div>
 
             <div>
               <h2 className="text-2xl font-bold text-white tracking-tight">{name}</h2>
               <p className="text-xs text-neutral-400 font-mono mt-0.5">
-                {ADMIN_USER.role} • {ADMIN_USER.nodeId}
+                <span className="capitalize">{currentUser.role}</span> • @{currentUser.username}
               </p>
             </div>
           </div>

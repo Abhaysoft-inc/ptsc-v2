@@ -8,6 +8,8 @@ interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
   icon?: ComponentType<{ className?: string }>;
   rightLabelAction?: ReactNode;
   helperText?: string;
+  /** Validation message; replaces the helper text and highlights the field. */
+  error?: string;
 }
 
 export default function AuthInput({
@@ -16,6 +18,7 @@ export default function AuthInput({
   type = "text",
   rightLabelAction,
   helperText,
+  error,
   className = "",
   ...props
 }: AuthInputProps) {
@@ -39,7 +42,10 @@ export default function AuthInput({
 
         <input
           type={inputType}
-          className={`w-full bg-[#141417] border border-white/15 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 transition-colors py-2.5 ${Icon ? "pl-10" : "pl-4"
+          aria-invalid={error ? true : undefined}
+          className={`w-full bg-[#141417] border ${
+            error ? "border-red-500/60" : "border-white/15"
+          } rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/40 transition-colors py-2.5 ${Icon ? "pl-10" : "pl-4"
             } ${isPassword ? "pr-10" : "pr-4"} ${className}`}
           {...props}
         />
@@ -56,8 +62,14 @@ export default function AuthInput({
         )}
       </div>
 
-      {helperText && (
-        <p className="text-[11px] text-neutral-400 mt-1">{helperText}</p>
+      {error ? (
+        <p role="alert" className="text-[11px] text-red-400 mt-1">
+          {error}
+        </p>
+      ) : (
+        helperText && (
+          <p className="text-[11px] text-neutral-400 mt-1">{helperText}</p>
+        )
       )}
     </div>
   );

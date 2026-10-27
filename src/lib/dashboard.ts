@@ -156,18 +156,6 @@ export const CURRENT_USER = {
   sprintsCount: 0,
 };
 
-export const ADMIN_USER = {
-  name: "Abhay Sharma",
-  email: "admin@ptsc.dev",
-  role: "Campus Superadmin",
-  badge: "SYSTEM ADMIN",
-  avatar: "/featured-saas.jpg",
-  lastActive: "Active Now",
-  nodeId: "PTSC-CORE-01",
-  securityLevel: "Tier 1 Root Access",
-  twoFactorEnabled: true,
-};
-
 export const INITIAL_EVENTS: AdminEvent[] = [
   {
     id: "evt-1",

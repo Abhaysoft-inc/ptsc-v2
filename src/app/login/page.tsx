@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import LoginClient from "./LoginClient";
 
 export const metadata = {
@@ -6,5 +7,10 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  return <LoginClient />;
+  // LoginClient reads ?next= from the URL, which needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <LoginClient />
+    </Suspense>
+  );
 }
