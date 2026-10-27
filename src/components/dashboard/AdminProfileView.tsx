@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import {
-  ShieldCheck,
   Key,
   Lock,
   CheckCircle2,
@@ -53,24 +52,11 @@ export default function AdminProfileView() {
             </div>
 
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-red-500/10 text-red-400 border border-red-500/20">
-                  {ADMIN_USER.badge}
-                </span>
-                <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Active Session
-                </span>
-              </div>
               <h2 className="text-2xl font-bold text-white tracking-tight">{name}</h2>
               <p className="text-xs text-neutral-400 font-mono mt-0.5">
                 {ADMIN_USER.role} • {ADMIN_USER.nodeId}
               </p>
             </div>
-          </div>
-
-          <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-neutral-300 font-mono">
-            {ADMIN_USER.securityLevel}
           </div>
         </div>
       </div>

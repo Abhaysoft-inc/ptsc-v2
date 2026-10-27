@@ -20,3 +20,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: clip;
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -4,30 +4,60 @@ import React, { createContext, useContext, useState } from "react";
 import {
   INITIAL_EVENTS,
   INITIAL_USERS,
-  INITIAL_ATTENDANCE,
-  INITIAL_MAILS,
+  INITIAL_MAIL_LOGS,
+  INITIAL_REGISTRATIONS,
+  INITIAL_MEDIA,
+  INITIAL_ADVISORS,
   AdminEvent,
   AdminUser,
-  AttendanceRecord,
-  MailCampaign,
+  MailLog,
+  MailType,
+  Registration,
+  MediaItem,
+  FacultyAdvisor,
+  DashboardRole,
 } from "@/lib/dashboard";
 
 interface AdminDashboardContextType {
   events: AdminEvent[];
   users: AdminUser[];
-  attendance: AttendanceRecord[];
-  campaigns: MailCampaign[];
+  mailLogs: MailLog[];
+  registrations: Registration[];
+  media: MediaItem[];
+  advisors: FacultyAdvisor[];
+  role: DashboardRole;
+  setRole: (role: DashboardRole) => void;
   handleCreateEvent: (
     eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
   ) => void;
   handleDeleteEvent: (id: string) => void;
-  handleToggleUserRole: (id: string) => void;
-  handleToggleUserStatus: (id: string) => void;
-  handleToggleCheckIn: (id: string) => void;
-  handleQuickVerify: (ticketId: string) => boolean;
-  handleSendMail: (
-    campaignData: Omit<MailCampaign, "id" | "sentAt" | "openRate">
+  /** Whether the public signup page accepts new accounts. */
+  allowSignup: boolean;
+  setAllowSignup: (allow: boolean) => void;
+  handleApproveUser: (id: string) => void;
+  handleSaveUser: (
+    id: string,
+    changes: Pick<AdminUser, "role" | "batch" | "post">
   ) => void;
+  /** Removes a user, or rejects a pending signup request. */
+  handleDeleteUser: (id: string) => void;
+  /** Persists present/absent for the given registration ids. */
+  handleSaveAttendance: (updates: Record<string, boolean>) => void;
+  /**
+   * Queues `type` emails for everyone marked present at the event. People who
+   * already have a sent or pending email of that type are skipped.
+   */
+  handleSendMail: (
+    eventId: string,
+    type: MailType
+  ) => { queued: number; skipped: number };
+  handleResendMail: (logId: string) => void;
+  handleDeleteRegistration: (id: string) => void;
+  handleRestoreRegistration: (id: string) => void;
+  handleAddMedia: (item: Omit<MediaItem, "id" | "uploadedAt">) => void;
+  handleDeleteMedia: (id: string) => void;
+  handleSaveAdvisor: (advisor: Omit<FacultyAdvisor, "id"> & { id?: string }) => void;
+  handleDeleteAdvisor: (id: string) => void;
 }
 
 const AdminDashboardContext = createContext<AdminDashboardContextType | undefined>(
@@ -37,8 +67,14 @@ const AdminDashboardContext = createContext<AdminDashboardContextType | undefine
 export function AdminDashboardProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<AdminEvent[]>(INITIAL_EVENTS);
   const [users, setUsers] = useState<AdminUser[]>(INITIAL_USERS);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(INITIAL_ATTENDANCE);
-  const [campaigns, setCampaigns] = useState<MailCampaign[]>(INITIAL_MAILS);
+  const [allowSignup, setAllowSignup] = useState(true);
+  const [mailLogs, setMailLogs] = useState<MailLog[]>(INITIAL_MAIL_LOGS);
+  const [registrations, setRegistrations] =
+    useState<Registration[]>(INITIAL_REGISTRATIONS);
+  const [media, setMedia] = useState<MediaItem[]>(INITIAL_MEDIA);
+  const [advisors, setAdvisors] = useState<FacultyAdvisor[]>(INITIAL_ADVISORS);
+  // No auth backend yet; the sidebar lets you preview each role's tab access.
+  const [role, setRole] = useState<DashboardRole>("admin");
 
   const handleCreateEvent = (
     eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
@@ -56,69 +92,153 @@ export function AdminDashboardProvider({ children }: { children: React.ReactNode
     setEvents((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const handleToggleUserRole = (id: string) => {
+  const handleApproveUser = (id: string) => {
     setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== id) return u;
-        const nextRole =
-          u.role === "Student Builder"
-            ? "Core Organizer"
-            : u.role === "Core Organizer"
-            ? "Admin"
-            : "Student Builder";
-        return { ...u, role: nextRole };
-      })
+      prev.map((u) => (u.id === id ? { ...u, status: "approved" } : u))
     );
   };
 
-  const handleToggleUserStatus = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== id) return u;
-        return { ...u, status: u.status === "Active" ? "Suspended" : "Active" };
-      })
+  const handleDeleteUser = (id: string) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  };
+
+  const handleSaveUser = (
+    id: string,
+    changes: Pick<AdminUser, "role" | "batch" | "post">
+  ) => {
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...changes } : u)));
+  };
+
+  const handleSaveAttendance = (updates: Record<string, boolean>) => {
+    setRegistrations((prev) =>
+      prev.map((r) => (r.id in updates ? { ...r, attended: updates[r.id] } : r))
     );
   };
 
-  const handleToggleCheckIn = (id: string) => {
-    setAttendance((prev) =>
-      prev.map((record) => {
-        if (record.id !== id) return record;
-        const isPresent = record.status === "Checked In" || record.status === "Late";
-        return {
-          ...record,
-          status: isPresent ? "Pending" : "Checked In",
-          checkInTime: isPresent ? "—" : "Just now",
-        };
-      })
-    );
+  // No mail backend yet: queued emails flip to "sent" after a short delay.
+  const settleMail = (ids: string[]) => {
+    setTimeout(() => {
+      setMailLogs((prev) =>
+        prev.map((log) =>
+          ids.includes(log.id)
+            ? { ...log, status: "sent", error: undefined }
+            : log
+        )
+      );
+    }, 1500);
   };
 
-  const handleQuickVerify = (ticketId: string): boolean => {
-    const cleanId = ticketId.trim().toUpperCase();
-    const match = attendance.find((a) => a.ticketId.toUpperCase() === cleanId);
-    if (!match) return false;
+  const handleSendMail = (eventId: string, type: MailType) => {
+    const stamp = new Date().toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
-    setAttendance((prev) =>
-      prev.map((record) =>
-        record.id === match.id
-          ? { ...record, status: "Checked In", checkInTime: "Just now" }
-          : record
+    // One email per attendee: every team member, or the lone registrant.
+    const attendees = registrations
+      .filter((r) => r.eventId === eventId && !r.deleted && r.attended)
+      .flatMap((r) =>
+        r.type === "team" && r.participants?.length
+          ? r.participants.map((p) => ({ name: p.name, email: p.email }))
+          : [{ name: r.name, email: r.email }]
+      );
+
+    const alreadyMailed = new Set(
+      mailLogs
+        .filter(
+          (l) =>
+            l.eventId === eventId &&
+            l.emailType === type &&
+            l.status !== "failed"
+        )
+        .map((l) => l.recipientEmail)
+    );
+
+    const fresh = attendees.filter((a) => !alreadyMailed.has(a.email));
+    const created: MailLog[] = fresh.map((a, i) => ({
+      id: `log-${Date.now()}-${i}`,
+      eventId,
+      recipientName: a.name,
+      recipientEmail: a.email,
+      emailType: type,
+      status: "pending",
+      createdAt: stamp,
+    }));
+
+    if (created.length > 0) {
+      // A failed email being re-sent as a new one replaces the old failed row.
+      const retried = new Set(created.map((c) => c.recipientEmail));
+      setMailLogs((prev) => [
+        ...created,
+        ...prev.filter(
+          (l) =>
+            !(
+              l.eventId === eventId &&
+              l.emailType === type &&
+              l.status === "failed" &&
+              retried.has(l.recipientEmail)
+            )
+        ),
+      ]);
+      settleMail(created.map((c) => c.id));
+    }
+
+    return { queued: created.length, skipped: attendees.length - created.length };
+  };
+
+  const handleResendMail = (logId: string) => {
+    setMailLogs((prev) =>
+      prev.map((l) =>
+        l.id === logId ? { ...l, status: "pending", error: undefined } : l
       )
     );
-    return true;
+    settleMail([logId]);
   };
 
-  const handleSendMail = (
-    campaignData: Omit<MailCampaign, "id" | "sentAt" | "openRate">
+  const setRegistrationDeleted = (id: string, deleted: boolean) => {
+    setRegistrations((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, deleted } : r))
+    );
+  };
+
+  const handleDeleteRegistration = (id: string) => setRegistrationDeleted(id, true);
+  const handleRestoreRegistration = (id: string) => setRegistrationDeleted(id, false);
+
+  const handleAddMedia = (item: Omit<MediaItem, "id" | "uploadedAt">) => {
+    const uploadedAt = new Date().toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    setMedia((prev) => [{ ...item, id: `med-${Date.now()}`, uploadedAt }, ...prev]);
+  };
+
+  const handleDeleteMedia = (id: string) => {
+    setMedia((prev) => {
+      const target = prev.find((m) => m.id === id);
+      if (target?.src.startsWith("blob:")) URL.revokeObjectURL(target.src);
+      return prev.filter((m) => m.id !== id);
+    });
+  };
+
+  const handleSaveAdvisor = (
+    advisor: Omit<FacultyAdvisor, "id"> & { id?: string }
   ) => {
-    const newCampaign: MailCampaign = {
-      ...campaignData,
-      id: `mail-${Date.now()}`,
-      sentAt: "Just now",
-      openRate: "100%",
-    };
-    setCampaigns((prev) => [newCampaign, ...prev]);
+    const { id } = advisor;
+    if (id) {
+      setAdvisors((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, ...advisor, id } : a))
+      );
+    } else {
+      setAdvisors((prev) => [...prev, { ...advisor, id: `adv-${Date.now()}` }]);
+    }
+  };
+
+  const handleDeleteAdvisor = (id: string) => {
+    setAdvisors((prev) => prev.filter((a) => a.id !== id));
   };
 
   return (
@@ -126,15 +246,28 @@ export function AdminDashboardProvider({ children }: { children: React.ReactNode
       value={{
         events,
         users,
-        attendance,
-        campaigns,
+        mailLogs,
+        registrations,
+        media,
+        advisors,
+        role,
+        setRole,
         handleCreateEvent,
         handleDeleteEvent,
-        handleToggleUserRole,
-        handleToggleUserStatus,
-        handleToggleCheckIn,
-        handleQuickVerify,
+        allowSignup,
+        setAllowSignup,
+        handleApproveUser,
+        handleSaveUser,
+        handleDeleteUser,
+        handleSaveAttendance,
         handleSendMail,
+        handleResendMail,
+        handleDeleteRegistration,
+        handleRestoreRegistration,
+        handleAddMedia,
+        handleDeleteMedia,
+        handleSaveAdvisor,
+        handleDeleteAdvisor,
       }}
     >
       {children}

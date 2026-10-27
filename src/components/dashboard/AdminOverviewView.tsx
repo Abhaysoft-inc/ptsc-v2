@@ -1,7 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   CalendarDays,
   Users,
@@ -9,40 +7,42 @@ import {
   Mail,
   ArrowUpRight,
   Clock,
-  Sparkles,
   ChevronRight,
   Plus,
 } from "lucide-react";
-import { AdminEvent, AdminUser, AttendanceRecord } from "@/lib/dashboard";
-import { AdminDashboardTab } from "./DashboardSidebar";
+import {
+  AdminEvent,
+  AdminUser,
+  Registration,
+  formatRegistrationId,
+} from "@/lib/dashboard";
+import { DashboardTab } from "./DashboardSidebar";
 import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminOverviewViewProps {
   events: AdminEvent[];
   users: AdminUser[];
-  attendance: AttendanceRecord[];
-  onNavigateTab?: (tab: AdminDashboardTab) => void;
-  onCreateEvent?: () => void;
+  registrations: Registration[];
+  onNavigateTab: (tab: DashboardTab) => void;
+  onCreateEvent: () => void;
 }
 
 export default function AdminOverviewView({
   events,
   users,
-  attendance,
+  registrations,
   onNavigateTab,
+  onCreateEvent,
 }: AdminOverviewViewProps) {
-  const router = useRouter();
-
-  const handleNavigate = (tab: AdminDashboardTab) => {
-    if (onNavigateTab) {
-      onNavigateTab(tab);
-    } else {
-      router.push(tab === "overview" ? "/dashboard" : `/dashboard/${tab}`);
-    }
-  };
+  const handleNavigate = onNavigateTab;
 
   const activeEventsCount = events.filter((e) => e.status === "Active" || e.status === "Upcoming").length;
-  const checkedInCount = attendance.filter((a) => a.status === "Checked In" || a.status === "Late").length;
+  const activeRegistrations = registrations.filter((r) => !r.deleted);
+  const checkedIn = activeRegistrations.filter((r) => r.attended);
+  const checkedInCount = checkedIn.length;
+  const checkInRate = Math.round(
+    (checkedInCount / (activeRegistrations.length || 1)) * 100
+  );
 
   return (
     <StaggerList className="space-y-8">
@@ -50,10 +50,6 @@ export default function AdminOverviewView({
       <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-[#141418] via-[#111114] to-[#18181f] border border-white/10 relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>CAMPUS ADMIN CONTROL</span>
-            </div>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               Welcome back, Superadmin.
             </h2>
@@ -63,13 +59,14 @@ export default function AdminOverviewView({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/dashboard/events/create"
+            <button
+              type="button"
+              onClick={onCreateEvent}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-semibold transition-all cursor-pointer shadow-md"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Create Event</span>
-            </Link>
+            </button>
 
             <button
               type="button"
@@ -136,10 +133,10 @@ export default function AdminOverviewView({
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{checkedInCount}</p>
-            <span className="text-[11px] text-purple-400 font-mono">/ {attendance.length} Scanned</span>
+            <span className="text-[11px] text-purple-400 font-mono">/ {activeRegistrations.length} Registered</span>
           </div>
           <p className="text-[11px] text-neutral-400 mt-2 flex items-center justify-between">
-            <span>83% Check-in Rate</span>
+            <span>{checkInRate}% Check-in Rate</span>
             <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
           </p>
         </div>
@@ -246,7 +243,12 @@ export default function AdminOverviewView({
           </div>
 
           <div className="space-y-2.5">
-            {attendance.slice(0, 4).map((record) => (
+            {checkedIn.length === 0 && (
+              <p className="text-xs text-neutral-500 py-4 text-center">
+                No one has been checked in yet.
+              </p>
+            )}
+            {checkedIn.slice(0, 4).map((record) => (
               <div
                 key={record.id}
                 className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs"
@@ -256,13 +258,19 @@ export default function AdminOverviewView({
                     ✓
                   </div>
                   <div>
-                    <p className="font-semibold text-white">{record.userName}</p>
-                    <p className="text-[10px] text-neutral-500 font-mono">{record.ticketId} • {record.seat}</p>
+                    <p className="font-semibold text-white">
+                      {record.teamName ?? record.name}
+                    </p>
+                    <p className="text-[10px] text-neutral-500 font-mono">
+                      {formatRegistrationId(record, events)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <span className="font-mono text-[11px] text-neutral-400">{record.checkInTime}</span>
+                  <span className="font-mono text-[11px] text-neutral-400 truncate max-w-[10rem] inline-block">
+                    {events.find((e) => e.id === record.eventId)?.title}
+                  </span>
                 </div>
               </div>
             ))}

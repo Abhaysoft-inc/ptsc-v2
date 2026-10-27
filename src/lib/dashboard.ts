@@ -14,43 +14,105 @@ export interface AdminEvent {
   registeredCount: number;
   attendedCount: number;
   description: string;
+  coverImageUrl?: string;
+  ruleBookUrl?: string;
+  whatsappGroupLink?: string;
+  resources?: EventResource[];
+  registration?: EventRegistration;
 }
+
+export type FormFieldType =
+  | "text"
+  | "email"
+  | "number"
+  | "tel"
+  | "url"
+  | "textarea"
+  | "select"
+  | "checkbox"
+  | "file";
+
+export interface RegistrationField {
+  id: string;
+  /** Key the answer is stored under, e.g. "teamName". */
+  name: string;
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  placeholder: string;
+  description: string;
+  /** Optional regex the answer must match. */
+  validation: string;
+  /** Choices for select / checkbox fields. */
+  options: string[];
+  /** File extensions accepted by file fields, e.g. ".pdf". */
+  allowedTypes: string[];
+  maxSizeMB: number;
+}
+
+export interface EventResource {
+  label: string;
+  url: string;
+}
+
+export interface EventRegistration {
+  type: "individual" | "team";
+  teamMinSize: number;
+  teamMaxSize: number;
+  useCustomForm: boolean;
+  googleFormLink: string;
+  forceGoogleForm: boolean;
+  /** Per registrant, or per team when type is "team". */
+  fields: RegistrationField[];
+  /** Asked of the leader and every member; team events only. */
+  participantFields: RegistrationField[];
+}
+
+export type UserStatus = "approved" | "pending";
 
 export interface AdminUser {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  batch: string;
-  role: "Student Builder" | "Core Organizer" | "Admin";
-  status: "Active" | "Suspended" | "Pending";
-  projectsCount: number;
-  eventsAttended: number;
-  avatar: string;
-  joinedDate: string;
+  username: string;
+  mobile: string;
+  status: UserStatus;
+  role: DashboardRole;
+  /** Graduation year, e.g. 2027. */
+  batch: number | null;
+  /** Position in the club, one of POSTS, or "" for none. */
+  post: string;
 }
 
-export interface AttendanceRecord {
+export const POSTS = [
+  "Secretary",
+  "Joint Secretary",
+  "Class Mentor",
+  "Competitive Programming Head",
+  "Web Development Head",
+  "App Dev Head",
+  "Data Science Head",
+  "GenAI Head",
+  "Media and Design Head",
+  "Event Head",
+  "Executive members",
+] as const;
+export type MailType = "Participation" | "Certificate";
+export type MailStatus = "sent" | "pending" | "failed";
+
+/** One email to one recipient for an event. */
+export interface MailLog {
   id: string;
-  ticketId: string;
-  userName: string;
-  userEmail: string;
-  eventTitle: string;
-  checkInTime: string;
-  status: "Checked In" | "Pending" | "Late";
-  seat: string;
-  batch: string;
+  eventId: string;
+  recipientName: string;
+  recipientEmail: string;
+  emailType: MailType;
+  status: MailStatus;
+  error?: string;
+  /** Preformatted so server and client render the same text. */
+  createdAt: string;
 }
-
-export interface MailCampaign {
-  id: string;
-  subject: string;
-  recipientGroup: string;
-  recipientsCount: number;
-  status: "Delivered" | "Queued" | "Draft";
-  sentAt: string;
-  openRate: string;
-}
-
 export interface Project {
   id: string;
   title: string;
@@ -164,182 +226,345 @@ export const INITIAL_EVENTS: AdminEvent[] = [
 export const INITIAL_USERS: AdminUser[] = [
   {
     id: "usr-1",
-    name: "Alex Chen",
+    firstName: "Alex",
+    lastName: "Chen",
     email: "alex@campus.edu",
-    batch: "Batch of 2027",
-    role: "Core Organizer",
-    status: "Active",
-    projectsCount: 3,
-    eventsAttended: 8,
-    avatar: "/featured-saas.jpg",
-    joinedDate: "Sep 2024",
+    username: "alexchen",
+    mobile: "+91 98765 43210",
+    status: "approved",
+    role: "member",
+    batch: 2027,
+    post: "Web Development Head",
   },
   {
     id: "usr-2",
-    name: "Rohan Varma",
+    firstName: "Rohan",
+    lastName: "Varma",
     email: "rohan@campus.edu",
-    batch: "Batch of 2026",
-    role: "Student Builder",
-    status: "Active",
-    projectsCount: 6,
-    eventsAttended: 12,
-    avatar: "/featured-collab.jpg",
-    joinedDate: "Aug 2023",
+    username: "rohanvarma",
+    mobile: "+91 91234 56780",
+    status: "approved",
+    role: "normal",
+    batch: 2026,
+    post: "",
   },
   {
     id: "usr-3",
-    name: "Tanvi Saxena",
+    firstName: "Tanvi",
+    lastName: "Saxena",
     email: "tanvi@campus.edu",
-    batch: "Batch of 2027",
-    role: "Core Organizer",
-    status: "Active",
-    projectsCount: 5,
-    eventsAttended: 9,
-    avatar: "/featured-launch.jpg",
-    joinedDate: "Sep 2024",
+    username: "tanvisaxena",
+    mobile: "+91 97654 32109",
+    status: "approved",
+    role: "member",
+    batch: 2027,
+    post: "Event Head",
   },
   {
     id: "usr-4",
-    name: "Ishaan Mehta",
+    firstName: "Ishaan",
+    lastName: "Mehta",
     email: "ishaan@campus.edu",
-    batch: "Batch of 2026",
-    role: "Student Builder",
-    status: "Active",
-    projectsCount: 4,
-    eventsAttended: 7,
-    avatar: "/featured-saas.jpg",
-    joinedDate: "Nov 2023",
+    username: "ishaanmehta",
+    mobile: "+91 98123 45670",
+    status: "approved",
+    role: "normal",
+    batch: 2026,
+    post: "",
   },
   {
     id: "usr-5",
-    name: "Aditya Nair",
+    firstName: "Aditya",
+    lastName: "Nair",
     email: "aditya@campus.edu",
-    batch: "Batch of 2028",
-    role: "Student Builder",
-    status: "Active",
-    projectsCount: 3,
-    eventsAttended: 4,
-    avatar: "/featured-collab.jpg",
-    joinedDate: "Oct 2025",
+    username: "adityanair",
+    mobile: "+91 96543 21098",
+    status: "approved",
+    role: "normal",
+    batch: 2028,
+    post: "",
   },
   {
     id: "usr-6",
+    firstName: "Maya",
+    lastName: "Patel",
+    email: "maya@campus.edu",
+    username: "mayapatel",
+    mobile: "+91 90000 11122",
+    status: "approved",
+    role: "admin",
+    batch: 2027,
+    post: "Secretary",
+  },
+  {
+    id: "usr-7",
+    firstName: "Karan",
+    lastName: "Joshi",
+    email: "karan@campus.edu",
+    username: "karanjoshi",
+    mobile: "+91 99001 22334",
+    status: "pending",
+    role: "normal",
+    batch: 2028,
+    post: "",
+  },
+  {
+    id: "usr-8",
+    firstName: "Neha",
+    lastName: "Rao",
+    email: "neha@campus.edu",
+    username: "neharao",
+    mobile: "+91 98002 33445",
+    status: "pending",
+    role: "normal",
+    batch: 2027,
+    post: "",
+  },
+];
+export const INITIAL_MAIL_LOGS: MailLog[] = [
+  {
+    id: "log-1",
+    eventId: "evt-1",
+    recipientName: "Alex Chen",
+    recipientEmail: "alex@campus.edu",
+    emailType: "Participation",
+    status: "sent",
+    createdAt: "Jan 25, 2026, 05:02 PM",
+  },
+  {
+    id: "log-2",
+    eventId: "evt-1",
+    recipientName: "Tanvi Saxena",
+    recipientEmail: "tanvi@campus.edu",
+    emailType: "Participation",
+    status: "sent",
+    createdAt: "Jan 25, 2026, 05:02 PM",
+  },
+  {
+    id: "log-3",
+    eventId: "evt-1",
+    recipientName: "Rohan Varma",
+    recipientEmail: "rohan@campus.edu",
+    emailType: "Participation",
+    status: "sent",
+    createdAt: "Jan 25, 2026, 05:02 PM",
+  },
+  {
+    id: "log-4",
+    eventId: "evt-1",
+    recipientName: "Ishaan Mehta",
+    recipientEmail: "ishaan@campus.edu",
+    emailType: "Participation",
+    status: "failed",
+    error: "Mailbox full (452 4.2.2)",
+    createdAt: "Jan 25, 2026, 05:02 PM",
+  },
+];
+export type DashboardRole = "admin" | "member" | "normal";
+
+export interface RegistrationParticipant {
+  name: string;
+  rollNo: string;
+  email: string;
+}
+
+export interface Registration {
+  id: string;
+  eventId: string;
+  type: "individual" | "team";
+  /** Individual name, or the team leader for team registrations. */
+  name: string;
+  email: string;
+  rollNo: string;
+  contactNo: string;
+  teamName?: string;
+  participants?: RegistrationParticipant[];
+  createdAt: string;
+  deleted: boolean;
+  /** Marked present at the event. Saved from the Attendance tab. */
+  attended: boolean;
+}
+
+export interface MediaItem {
+  id: string;
+  title: string;
+  description: string;
+  src: string;
+  uploadedAt: string;
+}
+
+export interface FacultyAdvisor {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export interface LeaderboardPlatform {
+  id: string;
+  name: string;
+  tracked: number;
+  lastSynced: string;
+}
+
+export const INITIAL_REGISTRATIONS: Registration[] = [
+  {
+    id: "reg-1",
+    eventId: "evt-1",
+    type: "team",
+    name: "Alex Chen",
+    email: "alex@campus.edu",
+    rollNo: "21CS104",
+    contactNo: "+91 98765 43210",
+    teamName: "Null Pointers",
+    participants: [
+      { name: "Alex Chen", rollNo: "21CS104", email: "alex@campus.edu" },
+      { name: "Tanvi Saxena", rollNo: "21CS118", email: "tanvi@campus.edu" },
+      { name: "Aditya Nair", rollNo: "22CS071", email: "aditya@campus.edu" },
+    ],
+    createdAt: "Jan 12, 2026, 06:42 PM",
+    deleted: false,
+    attended: true,
+  },
+  {
+    id: "reg-2",
+    eventId: "evt-1",
+    type: "team",
+    name: "Rohan Varma",
+    email: "rohan@campus.edu",
+    rollNo: "20CS032",
+    contactNo: "+91 91234 56780",
+    teamName: "Stack Overflowers",
+    participants: [
+      { name: "Rohan Varma", rollNo: "20CS032", email: "rohan@campus.edu" },
+      { name: "Ishaan Mehta", rollNo: "20CS047", email: "ishaan@campus.edu" },
+    ],
+    createdAt: "Jan 13, 2026, 11:05 AM",
+    deleted: false,
+    attended: true,
+  },
+  {
+    id: "reg-3",
+    eventId: "evt-1",
+    type: "individual",
+    name: "Sanya Roy",
+    email: "sanya@campus.edu",
+    rollNo: "21CS140",
+    contactNo: "+91 99887 76655",
+    createdAt: "Jan 15, 2026, 09:20 PM",
+    deleted: false,
+    attended: false,
+  },
+  {
+    id: "reg-4",
+    eventId: "evt-2",
+    type: "individual",
     name: "Maya Patel",
     email: "maya@campus.edu",
-    batch: "Batch of 2027",
-    role: "Admin",
-    status: "Active",
-    projectsCount: 2,
-    eventsAttended: 11,
-    avatar: "/featured-launch.jpg",
-    joinedDate: "Jan 2024",
+    rollNo: "21CS099",
+    contactNo: "+91 90000 11122",
+    createdAt: "Jan 28, 2026, 02:14 PM",
+    deleted: false,
+    attended: false,
+  },
+  {
+    id: "reg-5",
+    eventId: "evt-2",
+    type: "individual",
+    name: "Ishaan Mehta",
+    email: "ishaan@campus.edu",
+    rollNo: "20CS047",
+    contactNo: "+91 98123 45670",
+    createdAt: "Jan 29, 2026, 10:31 AM",
+    deleted: false,
+    attended: false,
+  },
+  {
+    id: "reg-6",
+    eventId: "evt-3",
+    type: "team",
+    name: "Tanvi Saxena",
+    email: "tanvi@campus.edu",
+    rollNo: "21CS118",
+    contactNo: "+91 97654 32109",
+    teamName: "Seed Round",
+    participants: [
+      { name: "Tanvi Saxena", rollNo: "21CS118", email: "tanvi@campus.edu" },
+      { name: "Maya Patel", rollNo: "21CS099", email: "maya@campus.edu" },
+    ],
+    createdAt: "Feb 2, 2026, 05:48 PM",
+    deleted: false,
+    attended: false,
+  },
+  {
+    id: "reg-7",
+    eventId: "evt-4",
+    type: "individual",
+    name: "Aditya Nair",
+    email: "aditya@campus.edu",
+    rollNo: "22CS071",
+    contactNo: "+91 96543 21098",
+    createdAt: "Dec 8, 2025, 08:02 PM",
+    deleted: true,
+    attended: false,
   },
 ];
 
-export const INITIAL_ATTENDANCE: AttendanceRecord[] = [
+export const INITIAL_MEDIA: MediaItem[] = [
   {
-    id: "att-1",
-    ticketId: "PTSC-7492",
-    userName: "Alex Chen",
-    userEmail: "alex@campus.edu",
-    eventTitle: "PTSC HackFest '26",
-    checkInTime: "09:42 AM",
-    status: "Checked In",
-    seat: "Row B - 12",
-    batch: "Batch 2027",
+    id: "med-1",
+    title: "HackFest '25 Finale",
+    description: "Final presentations in the main auditorium.",
+    src: "/featured-launch.jpg",
+    uploadedAt: "Jan 20, 2026",
   },
   {
-    id: "att-2",
-    ticketId: "PTSC-8821",
-    userName: "Rohan Varma",
-    userEmail: "rohan@campus.edu",
-    eventTitle: "PTSC HackFest '26",
-    checkInTime: "09:47 AM",
-    status: "Checked In",
-    seat: "Row A - 04",
-    batch: "Batch 2026",
+    id: "med-2",
+    title: "Core Team Meetup",
+    description: "Organizers planning the spring event calendar.",
+    src: "/team.jpg",
+    uploadedAt: "Jan 11, 2026",
   },
   {
-    id: "att-3",
-    ticketId: "PTSC-6124",
-    userName: "Tanvi Saxena",
-    userEmail: "tanvi@campus.edu",
-    eventTitle: "PTSC HackFest '26",
-    checkInTime: "09:55 AM",
-    status: "Checked In",
-    seat: "Row A - 05",
-    batch: "Batch 2027",
+    id: "med-3",
+    title: "Collab Sprint Highlights",
+    description: "Pair-building session during the open source sprint.",
+    src: "/featured-collab.jpg",
+    uploadedAt: "Dec 16, 2025",
   },
   {
-    id: "att-4",
-    ticketId: "PTSC-3921",
-    userName: "Ishaan Mehta",
-    userEmail: "ishaan@campus.edu",
-    eventTitle: "PTSC HackFest '26",
-    checkInTime: "10:02 AM",
-    status: "Checked In",
-    seat: "Row C - 18",
-    batch: "Batch 2026",
-  },
-  {
-    id: "att-5",
-    ticketId: "PTSC-9043",
-    userName: "Aditya Nair",
-    userEmail: "aditya@campus.edu",
-    eventTitle: "PTSC HackFest '26",
-    checkInTime: "10:14 AM",
-    status: "Late",
-    seat: "Row D - 22",
-    batch: "Batch 2028",
-  },
-  {
-    id: "att-6",
-    ticketId: "PTSC-5110",
-    userName: "Sanya Roy",
-    userEmail: "sanya@campus.edu",
-    eventTitle: "PTSC HackFest '26",
-    checkInTime: "—",
-    status: "Pending",
-    seat: "Row B - 08",
-    batch: "Batch 2027",
+    id: "med-4",
+    title: "Demo Day Collage",
+    description: "A year of builders, demos and late-night shipping.",
+    src: "/collage.png",
+    uploadedAt: "Nov 30, 2025",
   },
 ];
 
-export const INITIAL_MAILS: MailCampaign[] = [
-  {
-    id: "mail-1",
-    subject: "Final Confirmation: HackFest '26 Check-in Instructions & WiFi Passwords",
-    recipientGroup: "HackFest Attendees (142)",
-    recipientsCount: 142,
-    status: "Delivered",
-    sentAt: "Today at 08:00 AM",
-    openRate: "94.2%",
-  },
-  {
-    id: "mail-2",
-    subject: "Reminder: Venue update to Campus Auditorium Hall A",
-    recipientGroup: "All Registered HackFest Users",
-    recipientsCount: 150,
-    status: "Delivered",
-    sentAt: "Yesterday at 04:30 PM",
-    openRate: "88.7%",
-  },
-  {
-    id: "mail-3",
-    subject: "Call for Mentors: Systems & AI Tracks for Batch 2027",
-    recipientGroup: "Core Organizers & Alumni (45)",
-    recipientsCount: 45,
-    status: "Delivered",
-    sentAt: "Jan 21, 2026",
-    openRate: "91.1%",
-  },
-  {
-    id: "mail-4",
-    subject: "Demo Day Guidelines & Submission Portal Instructions",
-    recipientGroup: "All Community Builders (340)",
-    recipientsCount: 340,
-    status: "Queued",
-    sentAt: "Scheduled for Feb 01",
-    openRate: "—",
-  },
+export const INITIAL_ADVISORS: FacultyAdvisor[] = [
+  { id: "adv-1", name: "Dr. Meera Iyer", role: "Faculty Coordinator, CSE" },
+  { id: "adv-2", name: "Prof. Suresh Kulkarni", role: "Head of Department, CSE" },
+  { id: "adv-3", name: "Dr. Anita Deshmukh", role: "Innovation Cell Mentor" },
 ];
+
+export const INITIAL_PLATFORMS: LeaderboardPlatform[] = [
+  { id: "plat-1", name: "Codeforces", tracked: 84, lastSynced: "Today, 06:00 AM" },
+  { id: "plat-2", name: "CodeChef", tracked: 71, lastSynced: "Today, 06:00 AM" },
+  { id: "plat-3", name: "LeetCode", tracked: 96, lastSynced: "Yesterday, 06:00 AM" },
+];
+
+/** e.g. "Rust Systems & Axum Deep-Dive" + "reg-4" -> "RSA-REG4" */
+export function formatRegistrationId(
+  reg: Pick<Registration, "id" | "eventId">,
+  events: Pick<AdminEvent, "id" | "title">[]
+) {
+  const title = events.find((e) => e.id === reg.eventId)?.title ?? "";
+  const code =
+    title
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter((c) => c && /[a-z0-9]/i.test(c))
+      .slice(0, 3)
+      .join("")
+      .toUpperCase() || "EVT";
+  return `${code}-${reg.id.replace("-", "").toUpperCase()}`;
+}

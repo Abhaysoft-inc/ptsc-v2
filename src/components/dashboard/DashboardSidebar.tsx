@@ -6,233 +6,150 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarDays,
-  Users,
+  ClipboardList,
   QrCode,
   Mail,
+  ImageIcon,
+  Users,
+  GraduationCap,
+  Trophy,
   UserCog,
-  X,
   LogOut,
-  ShieldAlert,
+  type LucideIcon,
 } from "lucide-react";
-import { ADMIN_USER } from "@/lib/dashboard";
+import type { DashboardRole } from "@/lib/dashboard";
 
-export type AdminDashboardTab =
+export type DashboardTab =
   | "overview"
   | "events"
-  | "users"
+  | "registrations"
   | "attendance"
   | "mails"
+  | "media"
+  | "users"
+  | "advisors"
+  | "leaderboard"
   | "profile";
 
+interface TabConfig {
+  id: DashboardTab;
+  label: string;
+  /** Each tab is its own route, so the URL carries which page you're on. */
+  href: string;
+  icon: LucideIcon;
+  roles: DashboardRole[];
+}
+
+const ALL: DashboardRole[] = ["admin", "member", "normal"];
+const STAFF: DashboardRole[] = ["admin", "member"];
+
+export const DASHBOARD_TABS: TabConfig[] = [
+  { id: "overview", label: "Overview", href: "/dashboard", icon: LayoutDashboard, roles: STAFF },
+  { id: "events", label: "Events", href: "/dashboard/events", icon: CalendarDays, roles: ALL },
+  { id: "registrations", label: "Registrations", href: "/dashboard/registrations", icon: ClipboardList, roles: STAFF },
+  { id: "attendance", label: "Attendance", href: "/dashboard/attendance", icon: QrCode, roles: STAFF },
+  { id: "mails", label: "Mail Management", href: "/dashboard/mail", icon: Mail, roles: STAFF },
+  { id: "media", label: "Media", href: "/dashboard/media", icon: ImageIcon, roles: ALL },
+  { id: "users", label: "Users", href: "/dashboard/users", icon: Users, roles: ["admin"] },
+  { id: "advisors", label: "Faculty Advisors", href: "/dashboard/advisors", icon: GraduationCap, roles: ["admin"] },
+  { id: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, roles: STAFF },
+  { id: "profile", label: "My Profile", href: "/dashboard/profile", icon: UserCog, roles: ALL },
+];
+
+export function getTabFromPath(pathname: string): DashboardTab | null {
+  if (pathname === "/dashboard") return "overview";
+  const match = DASHBOARD_TABS.find(
+    (t) => t.href !== "/dashboard" && pathname.startsWith(t.href)
+  );
+  return match?.id ?? null;
+}
+
+export function getTabHref(tab: DashboardTab) {
+  return DASHBOARD_TABS.find((t) => t.id === tab)!.href;
+}
+
+export function getVisibleTabs(role: DashboardRole) {
+  return DASHBOARD_TABS.filter((tab) => tab.roles.includes(role));
+}
+
 interface DashboardSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-  stats?: {
-    activeEvents: number;
-    totalUsers: number;
-    pendingAttendance: number;
-    queuedMails: number;
-  };
+  role: DashboardRole;
+  /** Tabs that should show an attention dot (e.g. pending items). */
+  alertTabs?: DashboardTab[];
 }
 
 export default function DashboardSidebar({
-  isOpen,
-  onClose,
-  stats,
+  role,
+  alertTabs = [],
 }: DashboardSidebarProps) {
-  const pathname = usePathname();
-
-  const navItems = [
-    {
-      id: "overview" as AdminDashboardTab,
-      label: "Overview",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-      badge: null,
-    },
-    {
-      id: "events" as AdminDashboardTab,
-      label: "Manage Events",
-      href: "/dashboard/events",
-      icon: CalendarDays,
-      badge: stats ? `${stats.activeEvents} Active` : "4",
-    },
-    {
-      id: "users" as AdminDashboardTab,
-      label: "Manage Users",
-      href: "/dashboard/users",
-      icon: Users,
-      badge: stats ? `${stats.totalUsers}` : "6",
-    },
-    {
-      id: "attendance" as AdminDashboardTab,
-      label: "Attendance",
-      href: "/dashboard/attendance",
-      icon: QrCode,
-      badge: stats ? `${stats.pendingAttendance} Pending` : "Live",
-    },
-    {
-      id: "mails" as AdminDashboardTab,
-      label: "Mail Management",
-      href: "/dashboard/mails",
-      icon: Mail,
-      badge: stats ? `${stats.queuedMails} Queued` : "Broadcast",
-    },
-    {
-      id: "profile" as AdminDashboardTab,
-      label: "My Profile",
-      href: "/dashboard/profile",
-      icon: UserCog,
-      badge: "Admin",
-    },
-  ];
-
-  const isTabActive = (itemHref: string) => {
-    if (itemHref === "/dashboard") {
-      return pathname === "/dashboard";
-    }
-    return pathname.startsWith(itemHref);
-  };
+  const activeTab = getTabFromPath(usePathname());
+  const visibleTabs = getVisibleTabs(role);
+  const alerts = new Set(alertTabs);
 
   return (
-    <>
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0d0d10] border-r border-white/[0.08] flex flex-col justify-between transition-transform duration-200 lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+    <aside className="fixed inset-y-0 left-0 z-40 w-[64px] bg-[#0d0d10] border-r border-white/[0.08] flex flex-col items-center py-4">
+      {/* Logo */}
+      <Link
+        href="/"
+        aria-label="PTSC home"
+        className="relative w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/10 transition-colors select-none"
       >
-        <div className="flex flex-col h-full overflow-y-auto">
-          {/* Logo Bar */}
-          <div className="p-6 pb-5 flex items-center justify-between border-b border-white/[0.08]">
+        <Image
+          src="/logo.png"
+          alt="PTSC logo"
+          fill
+          sizes="40px"
+          priority
+          className="object-contain p-1.5"
+        />
+      </Link>
+
+      {/* Tab icons */}
+      <nav
+        aria-label="Dashboard sections"
+        className="mt-6 flex-1 flex flex-col items-center gap-1.5 w-full px-2 overflow-y-auto no-scrollbar"
+      >
+        {visibleTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+
+          return (
             <Link
-              href="/"
-              className="flex items-center gap-2.5 text-white font-bold tracking-tight hover:opacity-85 transition-opacity select-none"
+              key={tab.id}
+              href={tab.href}
+              title={tab.label}
+              aria-label={tab.label}
+              aria-current={isActive ? "page" : undefined}
+              className={`group relative w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                isActive
+                  ? "bg-white/10 text-white shadow-inner ring-1 ring-white/10"
+                  : "text-neutral-500 hover:text-white hover:bg-white/5"
+              }`}
             >
-              <div className="relative h-7 w-6 shrink-0">
-                <Image
-                  src="/logo.png"
-                  alt="PTSC Logo"
-                  fill
-                  sizes="28px"
-                  priority
-                  className="object-contain"
-                />
-              </div>
-              <span className="tracking-tight font-bold">PTSC</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-semibold">
-                ADMIN
+              <Icon className="w-[18px] h-[18px]" />
+
+              {alerts.has(tab.id) && !isActive && (
+                <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-amber-400" />
+              )}
+
+              {/* Hover label */}
+              <span className="pointer-events-none absolute left-[calc(100%+10px)] z-50 whitespace-nowrap px-2 py-1 rounded-md bg-[#1c1c20] border border-white/10 text-[11px] font-medium text-white opacity-0 translate-x-(-1) group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-xl">
+                {tab.label}
               </span>
             </Link>
+          );
+        })}
+      </nav>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="lg:hidden text-neutral-400 hover:text-white p-1 cursor-pointer"
-              aria-label="Close Sidebar"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="p-4 space-y-6 flex-1">
-            <div>
-              <div className="px-3 flex items-center justify-between mb-2">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                  Admin Console
-                </p>
-                <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live
-                </span>
-              </div>
-
-              <div className="space-y-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = isTabActive(item.href);
-
-                  return (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      onClick={onClose}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                        isActive
-                          ? "bg-white text-black shadow-md"
-                          : "text-neutral-400 hover:text-white hover:bg-white/5"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className={`w-4 h-4 ${isActive ? "text-black" : "text-neutral-400"}`} />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.badge && (
-                        <span
-                          className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
-                            isActive
-                              ? "bg-black/10 text-black font-bold"
-                              : "bg-white/5 text-neutral-400 border border-white/10"
-                          }`}
-                        >
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Quick Admin Notice Box */}
-            <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-[11px] text-neutral-400 space-y-1">
-              <div className="flex items-center gap-1.5 text-neutral-300 font-semibold text-xs">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                <span>Restricted Node</span>
-              </div>
-              <p className="text-[10px] leading-relaxed text-neutral-400">
-                You are authenticated as Campus Superadmin with full database mutation access.
-              </p>
-            </div>
-          </div>
-
-          {/* Profile Capsule at Bottom of Sidebar */}
-          <div className="p-4 border-t border-white/[0.08] bg-[#0f0f12]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="relative w-9 h-9 rounded-full overflow-hidden bg-neutral-800 border border-white/20 shrink-0">
-                  <Image
-                    src={ADMIN_USER.avatar}
-                    alt={ADMIN_USER.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">{ADMIN_USER.name}</p>
-                  <p className="text-[10px] text-red-400 font-mono truncate">{ADMIN_USER.role}</p>
-                </div>
-              </div>
-
-              <Link
-                href="/login"
-                title="Sign Out"
-                className="p-2 text-neutral-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors shrink-0"
-              >
-                <LogOut className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Backdrop overlay for mobile drawer */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
-        />
-      )}
-    </>
+      {/* Logout */}
+      <Link
+        href="/login"
+        title="Logout"
+        aria-label="Logout"
+        className="mt-2 w-11 h-11 rounded-xl flex items-center justify-center text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+      >
+        <LogOut className="w-[18px] h-[18px]" />
+      </Link>
+    </aside>
   );
 }

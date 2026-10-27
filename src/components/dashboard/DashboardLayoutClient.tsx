@@ -1,58 +1,79 @@
 "use client";
 
-import { useState } from "react";
-import Footer from "@/components/Footer";
-import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { motion } from "motion/react";
+import DashboardSidebar, {
+  getTabFromPath,
+  getVisibleTabs,
+  type DashboardTab,
+} from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import {
-  AdminDashboardProvider,
-  useAdminDashboard,
-} from "@/context/AdminDashboardContext";
+import DashboardTopBar from "@/components/dashboard/DashboardTopBar";
+import { useAdminDashboard } from "@/context/AdminDashboardContext";
 
-function DashboardShell({ children }: { children: React.ReactNode }) {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { events, users, attendance, campaigns } = useAdminDashboard();
-
-  return (
-    <div className="relative min-h-screen bg-[#080809] text-white selection:bg-white selection:text-black overflow-x-clip flex">
-      {/* 1. Admin Sidebar */}
-      <DashboardSidebar
-        isOpen={mobileSidebarOpen}
-        onClose={() => setMobileSidebarOpen(false)}
-        stats={{
-          activeEvents: events.filter(
-            (e) => e.status === "Active" || e.status === "Upcoming"
-          ).length,
-          totalUsers: users.length,
-          pendingAttendance: attendance.filter((a) => a.status === "Pending").length,
-          queuedMails: campaigns.filter((c) => c.status === "Queued").length,
-        }}
-      />
-
-      {/* 2. Main Admin Workspace */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
-        <DashboardHeader
-          onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
-        />
-
-        <main className="flex-1 px-6 sm:px-10 py-8 max-w-6xl w-full mx-auto">
-          {children}
-        </main>
-
-        <Footer />
-      </div>
-    </div>
-  );
-}
-
+// Rail + top bar + page title around whichever tab route is open. Each tab is
+// its own route under /dashboard, so the URL is the source of truth for which
+// tab you're on; shared data lives in AdminDashboardProvider (dashboard layout).
 export default function DashboardLayoutClient({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { events, mailLogs, registrations, role, setRole } = useAdminDashboard();
+
+  const visibleTabs = getVisibleTabs(role);
+  const routeTab = getTabFromPath(pathname);
+  const allowed = routeTab !== null && visibleTabs.some((t) => t.id === routeTab);
+  const firstAllowedHref = visibleTabs[0].href;
+
+  // Switching the previewed role can leave you on a tab that role can't see.
+  useEffect(() => {
+    if (!allowed) router.replace(firstAllowedHref);
+  }, [allowed, firstAllowedHref, router]);
+
+  // Icon rail has no room for counts, so flag tabs that have work waiting.
+  const alertTabs: DashboardTab[] = [];
+  const liveEventIds = new Set(
+    events.filter((e) => e.status === "Active").map((e) => e.id)
+  );
+  if (
+    registrations.some(
+      (r) => !r.deleted && !r.attended && liveEventIds.has(r.eventId)
+    )
+  ) {
+    alertTabs.push("attendance");
+  }
+  if (mailLogs.some((l) => l.status === "failed")) alertTabs.push("mails");
+
   return (
-    <AdminDashboardProvider>
-      <DashboardShell>{children}</DashboardShell>
-    </AdminDashboardProvider>
+    <div className="relative min-h-screen bg-[#080809] text-white selection:bg-white selection:text-black overflow-x-clip">
+      <DashboardSidebar role={role} alertTabs={alertTabs} />
+
+      <div className="pl-[64px] min-h-screen flex flex-col">
+        <DashboardTopBar role={role} onChangeRole={setRole} />
+
+        <main className="flex-1 px-5 sm:px-10 py-8 sm:py-10">
+          <div className="max-w-7xl mx-auto">
+            {allowed && routeTab && (
+              <>
+                <DashboardHeader tab={routeTab} />
+                <motion.section
+                  key={pathname}
+                  className="min-w-0"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  {children}
+                </motion.section>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
   );
 }

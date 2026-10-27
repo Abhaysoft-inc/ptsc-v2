@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import {
   CalendarDays,
   Search,
@@ -14,21 +12,26 @@ import {
 } from "lucide-react";
 import { AdminEvent } from "@/lib/dashboard";
 import StaggerList from "@/components/motion/StaggerList";
+import PillTabs from "@/components/dashboard/PillTabs";
+
+const EVENT_FILTERS = ["All", "Active", "Upcoming", "Completed"] as const;
 
 interface AdminEventsViewProps {
   events: AdminEvent[];
-  onCreateEvent?: () => void;
-  onOpenAttendance?: (eventTitle: string) => void;
+  /** Admins and members can create, check in and delete; normal users can only browse. */
+  canManage: boolean;
+  onCreateEvent: () => void;
+  onOpenAttendance: (eventId: string) => void;
   onDeleteEvent: (id: string) => void;
 }
 
 export default function AdminEventsView({
   events,
+  canManage,
   onCreateEvent,
   onOpenAttendance,
   onDeleteEvent,
 }: AdminEventsViewProps) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"All" | "Active" | "Upcoming" | "Completed">("All");
 
@@ -41,14 +44,6 @@ export default function AdminEventsView({
     const matchesFilter = filter === "All" || evt.status === filter;
     return matchesSearch && matchesFilter;
   });
-
-  const handleOpenAttendance = (eventTitle: string) => {
-    if (onOpenAttendance) {
-      onOpenAttendance(eventTitle);
-    } else {
-      router.push("/dashboard/attendance");
-    }
-  };
 
   return (
     <StaggerList className="space-y-6">
@@ -68,28 +63,23 @@ export default function AdminEventsView({
 
         {/* Filter Pills & Create Link */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-          {(["All", "Active", "Upcoming", "Completed"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setFilter(tab)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-                filter === tab
-                  ? "bg-white text-black font-semibold"
-                  : "bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 border border-white/10"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+          <PillTabs
+            label="Filter events by status"
+            options={EVENT_FILTERS}
+            value={filter}
+            onChange={setFilter}
+          />
 
-          <Link
-            href="/dashboard/events/create"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-black rounded-xl text-xs font-semibold shrink-0 cursor-pointer shadow-md transition-all"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Create Event</span>
-          </Link>
+          {canManage && (
+            <button
+              type="button"
+              onClick={onCreateEvent}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-black rounded-xl text-xs font-semibold shrink-0 cursor-pointer shadow-md transition-all"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Create Event</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -178,27 +168,29 @@ export default function AdminEventsView({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-5 mt-5 border-t border-white/[0.08] text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleOpenAttendance(evt.title)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors cursor-pointer"
-                >
-                  <Users className="w-3.5 h-3.5" />
-                  <span>Check-In Desk ({evt.attendedCount})</span>
-                </button>
-
-                <div className="flex items-center gap-2">
+              {canManage && (
+                <div className="flex items-center justify-between pt-5 mt-5 border-t border-white/[0.08] text-xs">
                   <button
                     type="button"
-                    onClick={() => onDeleteEvent(evt.id)}
-                    title="Archive Event"
-                    className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                    onClick={() => onOpenAttendance(evt.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Check-In Desk ({evt.attendedCount})</span>
                   </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onDeleteEvent(evt.id)}
+                      title="Archive Event"
+                      className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
