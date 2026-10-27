@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Search, Users } from "lucide-react";
 import {
   AdminUser,
   DashboardRole,
@@ -11,26 +11,48 @@ import {
 import StaggerList from "@/components/motion/StaggerList";
 import PillTabs from "@/components/dashboard/PillTabs";
 
-const STATUS_FILTERS = ["All", "Pending", "Approved"] as const;
-type StatusFilter = (typeof STATUS_FILTERS)[number];
+export const USER_STATUS_FILTERS = ["All", "Pending", "Approved"] as const;
+export type UserStatusFilter = (typeof USER_STATUS_FILTERS)[number];
+
+export interface UsersPageInfo {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  /** Pending requests across all pages, not just this one. */
+  pendingCount: number;
+}
 
 const ROLES: DashboardRole[] = ["normal", "member", "admin"];
 
 const STATUS_STYLE: Record<UserStatus, string> = {
   approved: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  denied: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
 type Edits = Pick<AdminUser, "role" | "batch" | "post">;
 
+// Each action resolves to true once the server accepted it.
 interface AdminUsersViewProps {
   users: AdminUser[];
+  /** Your own row: its role and Delete are locked so you can't lock yourself out. */
+  currentUserId?: string;
   allowSignup: boolean;
-  onToggleSignup: (allow: boolean) => void;
-  onApprove: (id: string) => void;
-  onSave: (id: string, changes: Edits) => void;
+  onToggleSignup: (allow: boolean) => Promise<boolean>;
+  onApprove: (id: string) => Promise<boolean>;
+  onSave: (id: string, changes: Edits) => Promise<boolean>;
   /** Deletes an approved user, or denies (removes) a pending request. */
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => Promise<boolean>;
+  // Search, filtering and paging happen on the server; the page owns them.
+  search: string;
+  onSearchChange: (search: string) => void;
+  statusFilter: UserStatusFilter;
+  onStatusFilterChange: (filter: UserStatusFilter) => void;
+  pageInfo: UsersPageInfo;
+  onPageChange: (page: number) => void;
+  /** A new page or filter is loading; the current rows stay visible. */
+  loading: boolean;
 }
 
 const field =
@@ -38,28 +60,42 @@ const field =
 
 export default function AdminUsersView({
   users,
+  currentUserId,
   allowSignup,
   onToggleSignup,
   onApprove,
   onSave,
   onDelete,
+  search,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  pageInfo,
+  onPageChange,
+  loading,
 }: AdminUsersViewProps) {
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
-  // Unsaved row edits, keyed by user id. Cleared per row on Save.
+  // Unsaved row edits, keyed by user id. Cleared per row once Save succeeds.
   const [edits, setEdits] = useState<Record<string, Partial<Edits>>>({});
+  // Rows with a request in flight, so buttons can't be double-clicked.
+  const [busy, setBusy] = useState<Set<string>>(new Set());
 
-  const pendingCount = users.filter((u) => u.status === "pending").length;
+  const track = async (id: string, action: () => Promise<boolean>) => {
+    setBusy((prev) => new Set(prev).add(id));
+    try {
+      return await action();
+    } finally {
+      setBusy((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
-  const query = search.trim().toLowerCase();
-  const visible = users.filter((u) => {
-    if (statusFilter !== "All" && u.status !== statusFilter.toLowerCase())
-      return false;
-    if (!query) return true;
-    return [u.firstName, u.lastName, u.email, u.username, u.mobile].some((v) =>
-      v.toLowerCase().includes(query)
-    );
-  });
+  const { page, pageSize, total, totalPages, pendingCount } = pageInfo;
+  const visible = users;
+  const firstShown = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastShown = Math.min(page * pageSize, total);
 
   const current = (u: AdminUser): Edits => ({
     role: edits[u.id]?.role ?? u.role,
@@ -70,8 +106,9 @@ export default function AdminUsersView({
   const patch = (id: string, change: Partial<Edits>) =>
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], ...change } }));
 
-  const handleSave = (u: AdminUser) => {
-    onSave(u.id, current(u));
+  const handleSave = async (u: AdminUser) => {
+    const ok = await track(u.id, () => onSave(u.id, current(u)));
+    if (!ok) return; // keep the edits so nothing typed is lost
     setEdits((prev) => {
       const next = { ...prev };
       delete next[u.id];
@@ -80,17 +117,17 @@ export default function AdminUsersView({
   };
 
   const handleApprove = (u: AdminUser) => {
-    if (window.confirm("Approve this user?")) onApprove(u.id);
+    if (window.confirm("Approve this user?")) track(u.id, () => onApprove(u.id));
   };
 
   const handleDeny = (u: AdminUser) => {
     if (window.confirm("Deny this user? This will delete their request."))
-      onDelete(u.id);
+      track(u.id, () => onDelete(u.id));
   };
 
   const handleDelete = (u: AdminUser) => {
     if (window.confirm("Delete this user? This action cannot be undone."))
-      onDelete(u.id);
+      track(u.id, () => onDelete(u.id));
   };
 
   return (
@@ -128,7 +165,7 @@ export default function AdminUsersView({
             type="text"
             placeholder="Search by name, email, username, or mobile..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-[#121215] border border-white/10 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
           />
         </div>
@@ -140,28 +177,31 @@ export default function AdminUsersView({
           )}
           <PillTabs
             label="Filter users by status"
-            options={STATUS_FILTERS}
+            options={USER_STATUS_FILTERS}
             value={statusFilter}
-            onChange={setStatusFilter}
+            onChange={onStatusFilterChange}
           />
         </div>
       </div>
 
       {visible.length > 0 ? (
-        <div className="bg-[#111113] border border-white/10 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
+        <div
+          aria-busy={loading}
+          className={`overflow-x-auto transition-opacity ${
+            loading ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
             <table className="w-full text-left text-xs">
               <thead className="border-b border-white/[0.08] text-neutral-500 text-xs font-medium">
                 <tr>
-                  <th className="py-3.5 px-5">Name</th>
+                  <th className="py-3.5 pr-4">Name</th>
                   <th className="py-3.5 px-4">Email</th>
-                  <th className="py-3.5 px-4">Username</th>
                   <th className="py-3.5 px-4">Mobile</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4">Role</th>
                   <th className="py-3.5 px-4">Batch</th>
                   <th className="py-3.5 px-4">Post</th>
-                  <th className="py-3.5 px-5 text-center">Actions</th>
+                  <th className="py-3.5 pl-4 text-center">Actions</th>
                 </tr>
               </thead>
 
@@ -173,17 +213,23 @@ export default function AdminUsersView({
                     value.batch !== u.batch ||
                     value.post !== u.post;
                   const isPending = u.status === "pending";
+                  const isSelf = u.id === currentUserId;
+                  const isBusy = busy.has(u.id);
 
                   return (
                     <tr
                       key={u.id}
                       className="hover:bg-white/[0.02] transition-colors"
                     >
-                      <td className="py-3.5 px-5 font-semibold text-white whitespace-nowrap">
+                      <td className="py-3.5 pr-4 font-semibold text-white whitespace-nowrap">
                         {u.firstName} {u.lastName}
+                        {isSelf && (
+                          <span className="ml-2 text-[11px] font-normal text-neutral-500">
+                            (you)
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-neutral-400">{u.email}</td>
-                      <td className="py-3.5 px-4 text-neutral-400">{u.username}</td>
                       <td className="py-3.5 px-4 text-neutral-400 whitespace-nowrap">
                         {u.mobile || "-"}
                       </td>
@@ -201,7 +247,9 @@ export default function AdminUsersView({
                             patch(u.id, { role: e.target.value as DashboardRole })
                           }
                           aria-label={`Role for ${u.firstName}`}
-                          className={`${field} cursor-pointer`}
+                          disabled={isSelf}
+                          title={isSelf ? "You can't change your own role" : undefined}
+                          className={`${field} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {ROLES.map((r) => (
                             <option key={r} value={r}>
@@ -244,13 +292,14 @@ export default function AdminUsersView({
                           ))}
                         </select>
                       </td>
-                      <td className="py-3.5 px-5">
+                      <td className="py-3.5 pl-4">
                         <div className="flex items-center justify-center gap-2">
                           {isPending ? (
                             <>
                               <button
                                 type="button"
                                 onClick={() => handleApprove(u)}
+                                disabled={isBusy}
                                 className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 text-xs font-medium transition-colors cursor-pointer"
                               >
                                 Approve
@@ -258,6 +307,7 @@ export default function AdminUsersView({
                               <button
                                 type="button"
                                 onClick={() => handleDeny(u)}
+                                disabled={isBusy}
                                 className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-medium transition-colors cursor-pointer"
                               >
                                 Deny
@@ -268,7 +318,7 @@ export default function AdminUsersView({
                               <button
                                 type="button"
                                 onClick={() => handleSave(u)}
-                                disabled={!dirty}
+                                disabled={!dirty || isBusy}
                                 className="px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 text-xs font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-500/15"
                               >
                                 Save
@@ -276,7 +326,9 @@ export default function AdminUsersView({
                               <button
                                 type="button"
                                 onClick={() => handleDelete(u)}
-                                className="px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-medium transition-colors cursor-pointer"
+                                disabled={isSelf || isBusy}
+                                title={isSelf ? "You can't delete your own account" : undefined}
+                                className="disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 text-xs font-medium transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>
@@ -289,7 +341,6 @@ export default function AdminUsersView({
                 })}
               </tbody>
             </table>
-          </div>
         </div>
       ) : (
         <div className="text-center py-16 bg-[#111113] rounded-2xl border border-white/10">
@@ -300,6 +351,84 @@ export default function AdminUsersView({
           </p>
         </div>
       )}
+
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-400">
+          <p className="flex items-center gap-2">
+            {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            <span>
+              Showing{" "}
+              <span className="text-white font-medium">
+                {firstShown}–{lastShown}
+              </span>{" "}
+              of <span className="text-white font-medium">{total}</span>{" "}
+              {total === 1 ? "user" : "users"}
+            </span>
+          </p>
+
+          {totalPages > 1 && (
+            <nav aria-label="Users pages" className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onPageChange(page - 1)}
+                disabled={page <= 1 || loading}
+                aria-label="Previous page"
+                className="p-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {pageNumbers(page, totalPages).map((n, i) =>
+                n === null ? (
+                  <span key={`gap-${i}`} className="px-1.5 text-neutral-600">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => onPageChange(n)}
+                    disabled={loading}
+                    aria-current={n === page ? "page" : undefined}
+                    className={`min-w-8 h-8 px-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                      n === page
+                        ? "bg-white text-black"
+                        : "text-neutral-300 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+
+              <button
+                type="button"
+                onClick={() => onPageChange(page + 1)}
+                disabled={page >= totalPages || loading}
+                aria-label="Next page"
+                className="p-2 rounded-lg border border-white/10 bg-white/5 text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </nav>
+          )}
+        </div>
+      )}
     </StaggerList>
   );
+}
+
+// Page buttons with gaps, e.g. 1 … 4 5 6 … 12. null marks a gap.
+function pageNumbers(page: number, totalPages: number): (number | null)[] {
+  const wanted = new Set([1, totalPages, page - 1, page, page + 1]);
+  const sorted = [...wanted]
+    .filter((n) => n >= 1 && n <= totalPages)
+    .sort((a, b) => a - b);
+  const out: (number | null)[] = [];
+  sorted.forEach((n, i) => {
+    if (i > 0 && n - sorted[i - 1] > 1) out.push(n - sorted[i - 1] === 2 ? n - 1 : null);
+    out.push(n);
+  });
+  return out;
 }

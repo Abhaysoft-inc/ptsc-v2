@@ -68,7 +68,7 @@ export interface EventRegistration {
   participantFields: RegistrationField[];
 }
 
-export type UserStatus = "approved" | "pending";
+export type UserStatus = "approved" | "pending" | "denied";
 
 export interface AdminUser {
   id: string;

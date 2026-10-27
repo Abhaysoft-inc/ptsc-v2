@@ -38,16 +38,6 @@ interface AdminDashboardContextType {
     eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
   ) => void;
   handleDeleteEvent: (id: string) => void;
-  /** Whether the public signup page accepts new accounts. */
-  allowSignup: boolean;
-  setAllowSignup: (allow: boolean) => void;
-  handleApproveUser: (id: string) => void;
-  handleSaveUser: (
-    id: string,
-    changes: Pick<AdminUser, "role" | "batch" | "post">
-  ) => void;
-  /** Removes a user, or rejects a pending signup request. */
-  handleDeleteUser: (id: string) => void;
   /** Persists present/absent for the given registration ids. */
   handleSaveAttendance: (updates: Record<string, boolean>) => void;
   /**
@@ -79,8 +69,9 @@ export function AdminDashboardProvider({
   user: SessionUser;
 }) {
   const [events, setEvents] = useState<AdminEvent[]>(INITIAL_EVENTS);
-  const [users, setUsers] = useState<AdminUser[]>(INITIAL_USERS);
-  const [allowSignup, setAllowSignup] = useState(true);
+  // Sample data, only used for the Overview count. The Users page loads real
+  // accounts from /api/admin/users.
+  const [users] = useState<AdminUser[]>(INITIAL_USERS);
   const [mailLogs, setMailLogs] = useState<MailLog[]>(INITIAL_MAIL_LOGS);
   const [registrations, setRegistrations] =
     useState<Registration[]>(INITIAL_REGISTRATIONS);
@@ -103,23 +94,6 @@ export function AdminDashboardProvider({
 
   const handleDeleteEvent = (id: string) => {
     setEvents((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  const handleApproveUser = (id: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, status: "approved" } : u))
-    );
-  };
-
-  const handleDeleteUser = (id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-  };
-
-  const handleSaveUser = (
-    id: string,
-    changes: Pick<AdminUser, "role" | "batch" | "post">
-  ) => {
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...changes } : u)));
   };
 
   const handleSaveAttendance = (updates: Record<string, boolean>) => {
@@ -268,11 +242,6 @@ export function AdminDashboardProvider({
         setRole,
         handleCreateEvent,
         handleDeleteEvent,
-        allowSignup,
-        setAllowSignup,
-        handleApproveUser,
-        handleSaveUser,
-        handleDeleteUser,
         handleSaveAttendance,
         handleSendMail,
         handleResendMail,
