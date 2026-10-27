@@ -397,6 +397,10 @@ export interface FacultyAdvisor {
   id: string;
   name: string;
   role: string;
+  imageUrl?: string;
+  profileUrl?: string;
+  /** Lower numbers appear first on the public team page. */
+  order: number;
 }
 
 export interface LeaderboardPlatform {
@@ -541,9 +545,9 @@ export const INITIAL_MEDIA: MediaItem[] = [
 ];
 
 export const INITIAL_ADVISORS: FacultyAdvisor[] = [
-  { id: "adv-1", name: "Dr. Meera Iyer", role: "Faculty Coordinator, CSE" },
-  { id: "adv-2", name: "Prof. Suresh Kulkarni", role: "Head of Department, CSE" },
-  { id: "adv-3", name: "Dr. Anita Deshmukh", role: "Innovation Cell Mentor" },
+  { id: "adv-1", name: "Prof. Suresh Kulkarni", role: "Head of Department, CSE", order: 1 },
+  { id: "adv-2", name: "Dr. Meera Iyer", role: "Faculty Coordinator, CSE", order: 2 },
+  { id: "adv-3", name: "Dr. Anita Deshmukh", role: "Innovation Cell Mentor", order: 3 },
 ];
 
 export const INITIAL_PLATFORMS: LeaderboardPlatform[] = [

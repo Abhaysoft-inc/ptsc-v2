@@ -157,34 +157,7 @@ export default function AdminProfileView() {
         )}
       </div>
 
-      {/* 3. API & Webhook Credentials */}
-      <div className="p-6 sm:p-8 rounded-2xl bg-[#111113] border border-white/10 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-neutral-400" />
-            <h3 className="text-sm font-bold text-white tracking-tight">
-              Root API Credentials
-            </h3>
-          </div>
-          <span className="text-[10px] text-neutral-500 font-mono">
-            REST &amp; Webhook Access
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-xl bg-[#18181c] border border-white/10 flex items-center justify-between gap-4">
-          <div className="font-mono text-xs text-neutral-300 truncate">
-            {apiKey}
-          </div>
-          <button
-            type="button"
-            onClick={handleCopyKey}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            <span>{copiedKey ? "Copied!" : "Copy Key"}</span>
-          </button>
-        </div>
-      </div>
+     
     </StaggerList>
   );
 }
