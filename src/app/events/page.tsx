@@ -135,8 +135,8 @@ export default function EventsPage() {
                 All Community Events
               </h2>
               <p className="mt-2 text-sm sm:text-base text-neutral-400 max-w-xl leading-relaxed">
-                Workshops, pitch sessions, demo days, and retreats built to help
-                you ship fast and network with active indie makers.
+                Workshops, hackathons, project demos, and meetups built to help
+                you sharpen your skills and connect with fellow student developers.
               </p>
             </div>
 

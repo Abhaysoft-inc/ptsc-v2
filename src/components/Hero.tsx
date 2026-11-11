@@ -10,7 +10,7 @@ export default function Hero() {
       <div className="absolute inset-0 z-0 ]">
         <Image
           src="/collage.png"
-          alt="Indie Hackers Community Collage Background"
+          alt="Programming and Tech Skills Club members collage"
           fill
           priority
           sizes="100vw"
@@ -30,16 +30,16 @@ export default function Hero() {
         {/* Main Headline */}
         <Reveal onMount y={30} delay={0.1}>
           <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[76px] font-bold text-white tracking-[-0.035em] leading-[1.08] sm:leading-[1.1] max-w-4xl mx-auto drop-shadow-sm">
-            The best community for <br />
-            <span className="text-white">Indie Hackers</span>
+            Where campus coders <br />
+            <span className="text-white">learn, build &amp; ship</span>
           </h1>
         </Reveal>
 
         {/* Subtitle Description */}
         <Reveal onMount delay={0.25}>
           <p className="mt-5 sm:mt-6 text-sm sm:text-base md:text-[17px] text-neutral-300 font-normal leading-relaxed max-w-xl mx-auto tracking-[-0.01em]">
-            We&apos;re building a community of indie hackers to help each other succeed. <br className="hidden sm:inline" />
-            Get in touch with us to join the community.
+            The Programming and Tech Skills Club is a student community for learning to code, building projects together, and growing as developers. <br className="hidden sm:inline" />
+            All branches and skill levels are welcome.
           </p>
         </Reveal>
 
@@ -51,7 +51,7 @@ export default function Hero() {
               type="button"
               className="rounded-lg bg-white hover:bg-neutral-200 text-black text-sm sm:text-[15px] font-semibold px-6 sm:px-7 py-3 transition-all duration-200 shadow-[0_2px_14px_rgba(255,255,255,0.12)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              Join Community
+              Join the Club
             </button>
 
             {/* Secondary CTA: Clean Text / Link */}
@@ -59,7 +59,7 @@ export default function Hero() {
               type="button"
               className="text-white hover:text-neutral-300 text-sm sm:text-[15px] font-medium px-4 py-3 transition-colors cursor-pointer"
             >
-              Add your product
+              Explore events
             </button>
           </div>
         </Reveal>

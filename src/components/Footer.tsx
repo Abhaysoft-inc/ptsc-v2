@@ -24,7 +24,7 @@ export default function Footer() {
               <span className="tracking-tight font-bold">PTSC</span>
             </Link>
             <p className="text-xs text-neutral-400 max-w-sm leading-relaxed">
-              The premier community for indie hackers, founders, and creators shipping fast and building in public.
+              Programming and Tech Skills Club. A student community for learning to code, building projects, and growing together.
             </p>
           </div>
 
@@ -34,7 +34,7 @@ export default function Footer() {
               Community
             </Link>
             <Link href="/#products" className="hover:text-white transition-colors">
-              Products
+              What We Do
             </Link>
             <Link href="/#events" className="hover:text-white transition-colors">
               Events
@@ -53,7 +53,7 @@ export default function Footer() {
 
         {/* Bottom Bar: Copyright & Subtle Status Indicator */}
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
-          <p>© 2026 PTSC Network. Built for builders.</p>
+          <p>© 2026 Programming and Tech Skills Club. Learn. Build. Grow.</p>
 
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

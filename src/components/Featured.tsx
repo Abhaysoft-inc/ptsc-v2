@@ -15,26 +15,26 @@ interface FeaturedItem {
 const featuredItems: FeaturedItem[] = [
   {
     id: "featured-1",
-    tag: "Micro-SaaS Engine",
-    title: "Ship Production-Ready Micro-SaaS",
+    tag: "Project Building",
+    title: "Build Real-World Projects",
     description:
-      "Transform side projects into recurring revenue businesses. Access modern battle-tested boilerplates, monetization roadmaps, and 0-to-1 building playbooks.",
+      "Go beyond tutorials. Work on web, app, and AI projects with starter templates, guided roadmaps, and mentors who review your code and help you finish what you start.",
     image: "/featured-saas.jpg",
   },
   {
     id: "featured-2",
-    tag: "Founder Masterminds",
-    title: "Live Sprints & Peer Collaboration",
+    tag: "Peer Learning",
+    title: "Learn Together, Code Together",
     description:
-      "Never build in isolation again. Join weekly virtual co-working sprints, receive honest roast-style feedback, and team up with fellow ambitious builders.",
+      "Never learn in isolation again. Join weekly coding sessions, pair up on problems, get honest code reviews from seniors, and team up with fellow students.",
     image: "/featured-collab.jpg",
   },
   {
     id: "featured-3",
-    tag: "Launch & Distribution",
-    title: "Launchpad & Growth Distribution",
+    tag: "Hackathons & Careers",
+    title: "Compete, Showcase & Get Hired",
     description:
-      "Get traction from day one. Leverage our high-engagement community launches, cross-promotions, and amplification network to scale your initial customer base.",
+      "Put your skills on display. Take part in hackathons and coding contests, present your projects at demo days, and prepare for internships and placements.",
     image: "/featured-launch.jpg",
   },
 ];
@@ -51,14 +51,14 @@ export default function Featured() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-neutral-900 border border-white/10 px-3.5 py-1 text-xs font-medium text-neutral-300 mb-3">
               <Sparkles className="w-3.5 h-3.5 text-neutral-400" />
-              <span>Featured Highlights</span>
+              <span>What We Do</span>
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
-              Built for Serious Indie Hackers
+              Built for Student Developers
             </h2>
             <p className="mt-2 text-sm sm:text-base text-neutral-400 max-w-xl leading-relaxed">
-              Curated tracks and community firepower to help you brainstorm, code,
-              and monetize your digital products.
+              Workshops, projects, and a supportive peer community to help you
+              learn, code, and grow your tech skills.
             </p>
           </div>
         </Reveal>

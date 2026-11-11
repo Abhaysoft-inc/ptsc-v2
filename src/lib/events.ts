@@ -89,11 +89,11 @@ export const eventsList: EventData[] = [
     month: "NOV",
     day: "04",
     year: "2026",
-    title: "Full-Stack AI SaaS",
+    title: "Full-Stack AI Web App",
     description:
-      "A deep-dive build session covering Next.js, API integrations, and shipping a monetization-ready micro-SaaS in one evening.",
+      "A deep-dive build session covering Next.js, API integrations, and deploying a full-stack AI web app in one evening.",
     longDescription:
-      "Join us for an intensive hands-on workshop designed to take you from a blank repo to a live, paid software product in just a few hours. We will cover Next.js App Router architecture, AI model integration, Stripe billing webhooks, authentication, and zero-downtime deployment pipelines.",
+      "Join us for an intensive hands-on workshop designed to take you from a blank repo to a live, deployed web application in just a few hours. We will cover Next.js App Router architecture, AI model integration, authentication, databases, and deployment pipelines.",
     image: "/bg.jpg",
     locationTitle: "Lecture Hall 201",
     locationSubtitle: "Campus Innovation Hub",
@@ -105,7 +105,7 @@ export const eventsList: EventData[] = [
     speakers: [
       {
         name: "Marcus Vance",
-        role: "Principal SaaS Architect",
+        role: "Senior Full-Stack Engineer",
       },
       {
         name: "Sara Chen",
@@ -116,7 +116,7 @@ export const eventsList: EventData[] = [
       {
         time: "4:00 PM",
         activity: "Architecture Breakdown",
-        details: "Modern SaaS stack overview: Next.js, Postgres, Stripe, and LLM APIs.",
+        details: "Modern web stack overview: Next.js, Postgres, authentication, and LLM APIs.",
       },
       {
         time: "4:45 PM",
@@ -125,13 +125,13 @@ export const eventsList: EventData[] = [
       },
       {
         time: "6:00 PM",
-        activity: "Billing & Deployment",
-        details: "Configuring webhooks, Stripe checkout sessions, and deploying to Vercel.",
+        activity: "Auth & Deployment",
+        details: "Setting up authentication, environment config, and deploying to Vercel.",
       },
       {
         time: "6:45 PM",
         activity: "Q&A and Code Reviews",
-        details: "Live debugging, architecture feedback, and product monetization advice.",
+        details: "Live debugging, architecture feedback, and career advice.",
       },
     ],
   },
@@ -141,15 +141,15 @@ export const eventsList: EventData[] = [
     month: "NOV",
     day: "18",
     year: "2026",
-    title: "Indie Demo Night",
+    title: "Project Demo Night",
     description:
-      "5-minute live demos from student founders and indie hackers. Honest feedback, live bug testing, and networking over coffee.",
+      "5-minute live demos from club members showing what they built. Honest feedback, live bug testing, and networking over coffee.",
     longDescription:
-      "No slide decks, no buzzwords—just raw product demos. Indie Demo Night is our monthly gathering where indie hackers show what they built in 5 minutes flat. Get live audience reactions, uncover hidden edge cases, and find your earliest adopters and beta testers.",
+      "No slide decks, no buzzwords—just raw project demos. Project Demo Night is our monthly gathering where members show what they built in 5 minutes flat. Get live audience reactions, uncover hidden edge cases, and find teammates and testers for your next project.",
     image: "/bg.jpg",
     locationTitle: "Main Seminar Hall",
-    locationSubtitle: "Hacker Lounge, Block 4",
-    fullAddress: "Auditorium Hall, Hacker Lounge Block 4, PTSC Creative Campus",
+    locationSubtitle: "Block 4",
+    fullAddress: "Main Seminar Hall, Block 4, Campus",
     time: "5:30 PM – 8:00 PM IST",
     attendees: 140,
     spotsLeft: 22,
@@ -157,7 +157,7 @@ export const eventsList: EventData[] = [
     speakers: [
       {
         name: "Devon Miller",
-        role: "Demo Host & Indie Builder",
+        role: "Demo Host & Club Member",
       },
     ],
     agenda: [
@@ -169,17 +169,17 @@ export const eventsList: EventData[] = [
       {
         time: "6:00 PM",
         activity: "10 Live Lightning Demos",
-        details: "5 minutes per product followed by 3 minutes of candid audience feedback.",
+        details: "5 minutes per project followed by 3 minutes of candid audience feedback.",
       },
       {
         time: "7:20 PM",
         activity: "Audience Choice Vote",
-        details: "Vote on the most impressive product and celebrate the winning builders.",
+        details: "Vote on the most impressive project and celebrate the winning teams.",
       },
       {
         time: "7:40 PM",
         activity: "Open Mixer & Breakout Circles",
-        details: "Connect with demoers, discuss collaborations, and celebrate shipping.",
+        details: "Connect with presenters, discuss collaborations, and celebrate what everyone built.",
       },
     ],
   },

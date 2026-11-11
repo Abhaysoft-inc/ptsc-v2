@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The best community for Indie Hackers",
+  title: "Programming and Tech Skills Club",
   description:
-    "We're building a community of indie hackers to help each other succeed. Get in touch with us to join the community.",
+    "A student community for learning to code, building projects together, and growing as developers. Workshops, hackathons, and peer mentoring for all skill levels.",
 };
 
 export default function RootLayout({

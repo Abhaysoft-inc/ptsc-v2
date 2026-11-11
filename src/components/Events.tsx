@@ -19,14 +19,14 @@ export default function Events() {
               Upcoming Events
             </h2>
             <p className="mt-2 text-sm sm:text-base text-neutral-400 max-w-xl leading-relaxed">
-              Hands-on workshops, demo days, and retreats designed to help you
-              connect with builders and ship faster.
+              Hands-on workshops, hackathons, and project showcases designed to
+              help you learn new skills and build alongside fellow coders.
             </p>
           </div>
 
           <div className="text-xs text-neutral-400 flex items-center gap-2 shrink-0">
             <Users className="w-4 h-4 text-neutral-500" />
-            <span>Over 350+ hackers joined past sessions</span>
+            <span>350+ students have joined past sessions</span>
           </div>
         </Reveal>
 
