@@ -9,6 +9,7 @@ import {
   UserStatus,
 } from "@/lib/dashboard";
 import StaggerList from "@/components/motion/StaggerList";
+import Dropdown from "@/components/ui/dropdown";
 import PillTabs from "@/components/dashboard/PillTabs";
 import Pagination from "@/components/dashboard/Pagination";
 import type { PageInfo } from "@/lib/types/admin";
@@ -22,6 +23,19 @@ export interface UsersPageInfo extends PageInfo {
 }
 
 const ROLES: DashboardRole[] = ["normal", "member", "admin"];
+
+const ROLE_OPTIONS = ROLES.map((r) => ({
+  value: r,
+  label: r.charAt(0).toUpperCase() + r.slice(1),
+}));
+
+/** "No post", then every post. A post saved by the old site that isn't listed still shows. */
+function postOptions(current: string) {
+  const options = [{ value: "", label: "—" }, ...POSTS.map((p) => ({ value: p as string, label: p }))];
+  return current && !POSTS.some((p) => p === current)
+    ? [...options, { value: current, label: current }]
+    : options;
+}
 
 const STATUS_STYLE: Record<UserStatus, string> = {
   approved: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -237,22 +251,16 @@ export default function AdminUsersView({
                         </span>
                       </td>
                       <td className="py-3.5 px-4">
-                        <select
+                        <Dropdown
+                          size="sm"
                           value={value.role}
-                          onChange={(e) =>
-                            patch(u.id, { role: e.target.value as DashboardRole })
-                          }
+                          onChange={(role) => patch(u.id, { role })}
+                          options={ROLE_OPTIONS}
                           aria-label={`Role for ${u.firstName}`}
                           disabled={isSelf}
                           title={isSelf ? "You can't change your own role" : undefined}
-                          className={`${field} cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
+                          className="min-w-24"
+                        />
                       </td>
                       <td className="py-3.5 px-4">
                         <input
@@ -274,19 +282,14 @@ export default function AdminUsersView({
                         />
                       </td>
                       <td className="py-3.5 px-4">
-                        <select
+                        <Dropdown
+                          size="sm"
                           value={value.post}
-                          onChange={(e) => patch(u.id, { post: e.target.value })}
+                          onChange={(post) => patch(u.id, { post })}
+                          options={postOptions(value.post)}
                           aria-label={`Post for ${u.firstName}`}
-                          className={`${field} cursor-pointer max-w-[11rem]`}
-                        >
-                          <option value="">—</option>
-                          {POSTS.map((p) => (
-                            <option key={p} value={p}>
-                              {p}
-                            </option>
-                          ))}
-                        </select>
+                          className="w-44"
+                        />
                       </td>
                       <td className="py-3.5 pl-4">
                         <div className="flex items-center justify-center gap-2">

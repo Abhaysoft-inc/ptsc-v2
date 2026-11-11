@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { errorMessage } from "@/lib/api-client";
+import Dropdown from "@/components/ui/dropdown";
 import { MAX_IMAGE_MB, uploadImage } from "@/lib/upload-client";
 import FieldBuilder from "./FieldBuilder";
 import {
@@ -82,23 +83,19 @@ export function StepBasics({ v, set, err, touch }: StepProps) {
       </Field>
 
       <Field id="ev-category" label="Category" hint="Shown as a label on the event card.">
-        <select
+        <Dropdown
           id="ev-category"
           aria-describedby="ev-category-hint"
           value={v.category}
-          onChange={(e) => set("category", e.target.value)}
-          className={`${inputClass} cursor-pointer`}
-        >
-          {/* Events imported from the old site have no category. */}
-          {!CATEGORIES.includes(v.category) && (
-            <option value={v.category}>{v.category || "Uncategorised"}</option>
-          )}
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+          onChange={(category) => set("category", category)}
+          options={[
+            // Events imported from the old site have no category.
+            ...(CATEGORIES.includes(v.category)
+              ? []
+              : [{ value: v.category, label: v.category || "Uncategorised" }]),
+            ...CATEGORIES.map((c) => ({ value: c, label: c })),
+          ]}
+        />
       </Field>
 
       <CheckRow

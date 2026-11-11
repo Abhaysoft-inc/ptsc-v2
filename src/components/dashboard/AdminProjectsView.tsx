@@ -20,6 +20,7 @@ import { CheckRow, Field, describe, inputClass } from "@/components/dashboard/ev
 import { isLink } from "@/components/dashboard/event-form/formModel";
 import { EmptyBlock } from "@/components/dashboard/ListStates";
 import StaggerList from "@/components/motion/StaggerList";
+import Dropdown from "@/components/ui/dropdown";
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = {
   "in-progress": "In progress",
@@ -198,15 +199,15 @@ function ProjectForm({
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Field id="pj-status" label="Status">
-            <select
+            <Dropdown
               id="pj-status"
               value={status}
-              onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-              className={`${inputClass} cursor-pointer`}
-            >
-              <option value="in-progress">In progress</option>
-              <option value="completed">Completed</option>
-            </select>
+              onChange={setStatus}
+              options={[
+                { value: "in-progress", label: "In progress" },
+                { value: "completed", label: "Completed" },
+              ]}
+            />
           </Field>
 
           <Field id="pj-builtBy" label="Built by" optional>

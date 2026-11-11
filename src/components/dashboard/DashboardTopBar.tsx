@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { DashboardRole } from "@/lib/dashboard";
 import type { SessionUser } from "@/lib/auth/types";
+import Dropdown from "@/components/ui/dropdown";
 
 interface DashboardTopBarProps {
   user: SessionUser;
@@ -60,22 +61,19 @@ export default function DashboardTopBar({
         </nav>
 
         {canPreviewRoles && (
-          <label className="flex items-center gap-2 text-[11px] text-neutral-500">
+          <div className="flex items-center gap-2 text-[11px] text-neutral-500">
             <span className="hidden sm:inline uppercase tracking-wider font-bold">
               View as
             </span>
-            <select
+            <Dropdown
+              size="sm"
+              aria-label="View the dashboard as"
               value={role}
-              onChange={(e) => onChangeRole(e.target.value as DashboardRole)}
-              className="px-2.5 py-1.5 bg-[#18181b] border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer"
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              onChange={onChangeRole}
+              options={ROLES}
+              className="min-w-28"
+            />
+          </div>
         )}
 
         <div

@@ -2,6 +2,7 @@
 
 import { Plus, Trash2, X } from "lucide-react";
 import type { RegistrationField } from "@/lib/dashboard";
+import Dropdown from "@/components/ui/dropdown";
 import {
   FIELD_TYPES,
   FILE_TYPE_PRESETS,
@@ -113,21 +114,13 @@ export default function FieldBuilder({
               <label className="block text-[11px] text-neutral-400 mb-1">
                 Field Type
               </label>
-              <select
+              <Dropdown
+                size="sm"
+                aria-label={`${itemLabel} ${index + 1} type`}
                 value={field.type}
-                onChange={(e) =>
-                  update(field.id, {
-                    type: e.target.value as RegistrationField["type"],
-                  })
-                }
-                className={`${subInput} cursor-pointer`}
-              >
-                {FIELD_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(type) => update(field.id, { type })}
+                options={FIELD_TYPES}
+              />
             </div>
             <div>
               <label className="block text-[11px] text-neutral-400 mb-1">
