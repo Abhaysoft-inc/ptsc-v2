@@ -1,17 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventForm from "@/components/dashboard/event-form/EventForm";
+import { clearDraft } from "@/components/dashboard/event-form/formModel";
 import { ErrorBlock, LoadingBlock } from "@/components/dashboard/ListStates";
 import { api, detailedErrorMessage, errorMessage } from "@/lib/api-client";
 import type { AdminEvent, EventInput } from "@/lib/types/admin";
 
 const BACK = "/dashboard/events";
+
+const noopSubscribe = () => () => {};
+
+/** False while rendering on the server, true in the browser. */
+function useIsClient() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
 
 /** The create / edit event screen. Pass `eventId` to edit. */
 export default function EventEditor({ eventId }: { eventId?: string }) {
@@ -20,6 +28,10 @@ export default function EventEditor({ eventId }: { eventId?: string }) {
   const [event, setEvent] = useState<AdminEvent | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // The form restores a saved draft from this browser, so it only renders here.
+  const isClient = useIsClient();
+  // Changing the key rebuilds the form from scratch ("Start over").
+  const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
     if (!eventId) return;
@@ -83,14 +95,23 @@ export default function EventEditor({ eventId }: { eventId?: string }) {
             </div>
           ) : loadError ? (
             <ErrorBlock title="Couldn't load this event" message={loadError} />
-          ) : editing && !event ? (
-            <LoadingBlock label="Loading event…" />
+          ) : !isClient || (editing && !event) ? (
+            <LoadingBlock label={editing ? "Loading event…" : "Loading form…"} />
           ) : (
             <EventForm
+              key={formKey}
               cancelHref={BACK}
               initial={event ?? undefined}
               submitLabel={editing ? "Save Changes" : "Create Event"}
               onSubmit={save}
+              onStartOver={
+                editing
+                  ? undefined
+                  : () => {
+                      clearDraft();
+                      setFormKey((k) => k + 1);
+                    }
+              }
             />
           )}
         </div>
