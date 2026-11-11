@@ -8,6 +8,125 @@ export interface PageInfo {
   totalPages: number;
 }
 
+export type DashboardRole = "admin" | "member" | "normal";
+export type UserStatus = "approved" | "pending" | "denied";
+
+export interface AdminUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  username: string;
+  mobile: string;
+  status: UserStatus;
+  role: DashboardRole;
+  /** Graduation year, e.g. 2027. */
+  batch: number | null;
+  /** Position in the club, one of POSTS, or "" for none. */
+  post: string;
+}
+
+export type FormFieldType =
+  | "text"
+  | "email"
+  | "number"
+  | "tel"
+  | "url"
+  | "textarea"
+  | "select"
+  | "checkbox"
+  | "file";
+
+export interface RegistrationField {
+  id: string;
+  /** Key the answer is stored under, e.g. "teamName". */
+  name: string;
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  placeholder: string;
+  description: string;
+  /** Optional regex the answer must match. */
+  validation: string;
+  /** Choices for select / checkbox fields. */
+  options: string[];
+  /** File extensions accepted by file fields, e.g. ".pdf". */
+  allowedTypes: string[];
+  maxSizeMB: number;
+}
+
+export interface EventResource {
+  label: string;
+  url: string;
+}
+
+export interface EventRegistration {
+  type: "individual" | "team";
+  teamMinSize: number;
+  teamMaxSize: number;
+  useCustomForm: boolean;
+  googleFormLink: string;
+  forceGoogleForm: boolean;
+  /** Per registrant, or per team when type is "team". */
+  fields: RegistrationField[];
+  /** Asked of the leader and every member; team events only. */
+  participantFields: RegistrationField[];
+}
+
+/** An event as the dashboard shows and edits it. */
+export interface AdminEvent {
+  id: string;
+  title: string;
+  date: {
+    month: string;
+    day: string;
+    year: string;
+  };
+  time: string;
+  venue: string;
+  category: string;
+  /** Derived: Draft (unpublished), Upcoming, Active (today) or Completed. */
+  status: "Upcoming" | "Active" | "Completed" | "Draft";
+  capacity: number;
+  registeredCount: number;
+  attendedCount: number;
+  description: string;
+  /** Visible on the public website. */
+  published?: boolean;
+  coverImageUrl?: string;
+  ruleBookUrl?: string;
+  whatsappGroupLink?: string;
+  resources?: EventResource[];
+  registration?: EventRegistration;
+}
+
+/** What the create / edit form sends. The date is "YYYY-MM-DD". */
+export type EventInput = Omit<
+  AdminEvent,
+  "id" | "date" | "status" | "registeredCount" | "attendedCount"
+> & { date: string };
+
+/** Numbers for the dashboard's Overview tab. */
+export interface OverviewData {
+  events: {
+    total: number;
+    /** Upcoming or happening today. */
+    open: number;
+    /** The event to spotlight: today's, else the next one, else the latest. */
+    focus: AdminEvent | null;
+  };
+  members: { approved: number; pending: number };
+  attendance: { registered: number; checkedIn: number };
+  recentCheckIns: {
+    id: string;
+    name: string;
+    registrationId: string;
+    eventTitle: string;
+    attendedAt: string | null;
+  }[];
+  mail: { sent: number; failed: number; pending: number };
+}
+
 export interface AdminEventSummary {
   id: string;
   title: string;

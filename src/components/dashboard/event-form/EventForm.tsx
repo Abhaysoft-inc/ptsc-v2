@@ -15,20 +15,23 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import {
+import type {
   AdminEvent,
+  EventInput,
   EventResource,
   RegistrationField,
-} from "@/lib/dashboard";
+} from "@/lib/types/admin";
 import FieldBuilder from "./FieldBuilder";
 import { isOptionType } from "./fields";
 
 interface EventFormProps {
-  onSubmit: (
-    eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
-  ) => void;
+  /** Saves the event. Resolves to an error message to show, or null on success. */
+  onSubmit: (eventData: EventInput) => Promise<string | null>;
   /** Where the Cancel link goes. */
   cancelHref: string;
+  /** Fills the form when editing an existing event. */
+  initial?: AdminEvent;
+  submitLabel?: string;
 }
 
 const MONTHS = [
@@ -36,53 +39,67 @@ const MONTHS = [
   "JUL", "AUG", "SEP", "OCT", "NOV", "DEC",
 ];
 
+const CATEGORIES = ["Hackathon", "Workshop", "Demo Day", "Sprint", "Talk", "Meetup"];
+
 const input =
   "w-full px-3.5 py-2.5 bg-[#18181b] border border-white/10 rounded-xl text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-white/30 transition-colors";
 const labelClass =
   "flex items-center gap-2 text-xs font-medium text-neutral-300 mb-1.5";
 
-// "2026-01-25" -> { month: "JAN", day: "25", year: "2026" }
-function toEventDate(value: string): AdminEvent["date"] | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return null;
-  const [, year, month, day] = match;
-  return { month: MONTHS[Number(month) - 1], day, year };
+// { month: "JAN", day: "25", year: "2026" } -> "2026-01-25" (for <input type="date">)
+function toDateInput(date: AdminEvent["date"] | undefined) {
+  if (!date) return "";
+  const month = MONTHS.indexOf(date.month) + 1;
+  return month > 0 ? `${date.year}-${String(month).padStart(2, "0")}-${date.day}` : "";
 }
 
-export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
+const isDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+export default function EventForm({
+  onSubmit,
+  cancelHref,
+  initial,
+  submitLabel = "Create Event",
+}: EventFormProps) {
+  const reg = initial?.registration;
+
   // Basic info
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [venue, setVenue] = useState("");
-  const [category, setCategory] = useState("Hackathon");
-  const [capacity, setCapacity] = useState(100);
-  const [ruleBookUrl, setRuleBookUrl] = useState("");
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [date, setDate] = useState(toDateInput(initial?.date));
+  const [time, setTime] = useState(initial?.time ?? "");
+  const [venue, setVenue] = useState(initial?.venue ?? "");
+  const [category, setCategory] = useState(initial ? initial.category : "Hackathon");
+  const [capacity, setCapacity] = useState(initial?.capacity ?? 100);
+  const [ruleBookUrl, setRuleBookUrl] = useState(initial?.ruleBookUrl ?? "");
+  const [published, setPublished] = useState(initial?.published ?? true);
 
   // Registration settings
-  const [regType, setRegType] = useState<"individual" | "team">("individual");
-  const [teamMinSize, setTeamMinSize] = useState(2);
-  const [teamMaxSize, setTeamMaxSize] = useState(4);
-  const [whatsappGroupLink, setWhatsappGroupLink] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
-  const [useCustomForm, setUseCustomForm] = useState(false);
-  const [googleFormLink, setGoogleFormLink] = useState("");
-  const [forceGoogleForm, setForceGoogleForm] = useState(false);
-  const [fields, setFields] = useState<RegistrationField[]>([]);
-  const [participantFields, setParticipantFields] = useState<RegistrationField[]>([]);
+  const [regType, setRegType] = useState<"individual" | "team">(reg?.type ?? "individual");
+  const [teamMinSize, setTeamMinSize] = useState(reg && reg.type === "team" ? reg.teamMinSize : 2);
+  const [teamMaxSize, setTeamMaxSize] = useState(reg && reg.type === "team" ? reg.teamMaxSize : 4);
+  const [whatsappGroupLink, setWhatsappGroupLink] = useState(initial?.whatsappGroupLink ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState(initial?.coverImageUrl ?? "");
+  const [useCustomForm, setUseCustomForm] = useState(reg?.useCustomForm ?? false);
+  const [googleFormLink, setGoogleFormLink] = useState(reg?.googleFormLink ?? "");
+  const [forceGoogleForm, setForceGoogleForm] = useState(reg?.forceGoogleForm ?? false);
+  const [fields, setFields] = useState<RegistrationField[]>(reg?.fields ?? []);
+  const [participantFields, setParticipantFields] = useState<RegistrationField[]>(
+    reg?.participantFields ?? []
+  );
 
   // Resources
-  const [resources, setResources] = useState<EventResource[]>([
-    { label: "", url: "" },
-  ]);
+  const [resources, setResources] = useState<EventResource[]>(
+    initial?.resources?.length ? initial.resources : [{ label: "", url: "" }]
+  );
 
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const validate = (): string | null => {
     if (!title.trim()) return "Event title is required.";
     if (!description.trim()) return "Event description is required.";
-    if (!toEventDate(date)) return "A valid event date is required.";
+    if (!isDate(date)) return "A valid event date is required.";
 
     if (useCustomForm) {
       const allFields =
@@ -103,15 +120,15 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
     return null;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const message = validate();
     if (message) {
       setError(message);
       return;
     }
 
-    const eventDate = toEventDate(date)!;
     const cleanFields = (list: RegistrationField[]) =>
       list.map((f) =>
         isOptionType(f.type)
@@ -119,15 +136,17 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
           : f
       );
 
-    onSubmit({
+    setError(null);
+    setSaving(true);
+    const failure = await onSubmit({
       title: title.trim(),
       description: description.trim(),
-      date: eventDate,
-      time: time.trim() || "Time to be announced",
-      venue: venue.trim() || "Venue to be announced",
+      date,
+      time: time.trim(),
+      venue: venue.trim(),
       category,
-      capacity: Number(capacity) || 100,
-      status: "Upcoming",
+      capacity: Math.max(0, Math.floor(Number(capacity) || 0)),
+      published,
       coverImageUrl: coverImageUrl.trim() || undefined,
       ruleBookUrl: ruleBookUrl.trim() || undefined,
       whatsappGroupLink: whatsappGroupLink.trim() || undefined,
@@ -146,6 +165,11 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
             : [],
       },
     });
+    // On success the caller navigates away, so only a failure re-enables the form.
+    if (failure) {
+      setError(failure);
+      setSaving(false);
+    }
   };
 
   const updateResource = (index: number, patch: Partial<EventResource>) =>
@@ -229,13 +253,15 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
               onChange={(e) => setCategory(e.target.value)}
               className={`${input} cursor-pointer`}
             >
-              {["Hackathon", "Workshop", "Demo Day", "Sprint", "Talk", "Meetup"].map(
-                (c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                )
+              {/* Events imported from the old site have no category. */}
+              {!CATEGORIES.includes(category) && (
+                <option value={category}>{category || "Uncategorised"}</option>
               )}
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -243,11 +269,11 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>
-              <Users className="w-4 h-4" /> Capacity
+              <Users className="w-4 h-4" /> Capacity (0 = no limit)
             </label>
             <input
               type="number"
-              min={1}
+              min={0}
               value={capacity}
               onChange={(e) => setCapacity(Number(e.target.value))}
               className={input}
@@ -266,6 +292,22 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
             />
           </div>
         </div>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={published}
+            onChange={(e) => setPublished(e.target.checked)}
+            className="w-4 h-4 mt-0.5 rounded accent-white"
+          />
+          <span>
+            <span className="text-sm text-white">Publish on website</span>
+            <span className="block text-xs text-neutral-400">
+              Untick to keep this event as a draft that only the team can see,
+              and to close its public registration.
+            </span>
+          </span>
+        </label>
       </section>
 
       {/* Registration settings */}
@@ -525,10 +567,11 @@ export default function EventForm({ onSubmit, cancelHref }: EventFormProps) {
         </Link>
         <button
           type="submit"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold shadow-md transition-all cursor-pointer"
+          disabled={saving}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-sm font-semibold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>Create Event</span>
+          <span>{saving ? "Saving…" : submitLabel}</span>
         </button>
       </div>
     </form>

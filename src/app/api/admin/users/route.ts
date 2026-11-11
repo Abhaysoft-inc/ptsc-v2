@@ -2,21 +2,11 @@ import { NextResponse, connection, type NextRequest } from "next/server";
 import type { QueryFilter } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { requireAdmin, serverError } from "@/lib/auth/require-admin";
-import type { AdminUser } from "@/lib/dashboard";
+import { escapeRegex, noStore, pageSizeFrom, paginate, searchText } from "@/lib/server/query";
+import type { AdminUser } from "@/lib/types/admin";
 import { User, type UserDoc } from "@/models/User";
 
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
 const STATUSES = ["pending", "approved", "denied"] as const;
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function positiveInt(raw: string | null, fallback: number, max = Infinity) {
-  const n = Number(raw);
-  return Number.isInteger(n) && n >= 1 ? Math.min(n, max) : fallback;
-}
 
 // GET /api/admin/users?page=1&pageSize=20&q=abhay&status=pending
 export async function GET(request: NextRequest) {
@@ -29,10 +19,9 @@ export async function GET(request: NextRequest) {
     if ("response" in auth) return auth.response;
 
     const params = request.nextUrl.searchParams;
-    const pageSize = positiveInt(params.get("pageSize"), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const statusParam = params.get("status");
     const status = STATUSES.find((s) => s === statusParam);
-    const q = (params.get("q") ?? "").trim().slice(0, 100);
+    const q = searchText(params);
 
     const filter: QueryFilter<UserDoc> = {};
     if (status) filter.status = status;
@@ -57,10 +46,13 @@ export async function GET(request: NextRequest) {
       User.countDocuments(filter),
       User.countDocuments({ status: "pending" }),
     ]);
-    const totalPages = Math.max(1, Math.ceil(total / pageSize));
-    // Clamp so deleting the last user on the last page doesn't strand you on
-    // an empty page.
-    const page = Math.min(positiveInt(params.get("page"), 1), totalPages);
+    // Clamps the page so deleting the last user on the last page doesn't strand
+    // you on an empty one.
+    const { page, pageSize, totalPages, skip } = paginate(
+      params,
+      total,
+      pageSizeFrom(params)
+    );
 
     const docs = await User.find(
       filter,
@@ -69,7 +61,7 @@ export async function GET(request: NextRequest) {
       // "pending" sorts after "approved"/"denied", so descending puts
       // requests awaiting review first. _id keeps paging stable on ties.
       .sort({ status: -1, firstName: 1, lastName: 1, _id: 1 })
-      .skip((page - 1) * pageSize)
+      .skip(skip)
       .limit(pageSize)
       .lean();
 
@@ -97,7 +89,7 @@ export async function GET(request: NextRequest) {
         pendingCount,
         currentUserId: auth.user.id,
       },
-      { headers: { "Cache-Control": "no-store" } }
+      noStore
     );
   } catch (error) {
     return serverError("Listing users failed", error);

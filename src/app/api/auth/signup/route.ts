@@ -1,41 +1,31 @@
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
-import { fieldErrors, signupSchema } from "@/lib/auth/validation";
+import { serverError } from "@/lib/auth/require-admin";
+import { signupSchema } from "@/lib/auth/validation";
+import { parseBody } from "@/lib/server/query";
+import { rateLimit } from "@/lib/server/rate-limit";
 import { Setting } from "@/models/Setting";
 import { User } from "@/models/User";
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json(
-      { success: false, message: "Invalid request body." },
-      { status: 400 }
-    );
-  }
+  const body = await parseBody(request, signupSchema, "Please fix the highlighted fields.");
+  if ("response" in body) return body.response;
+  const { password, batch, ...profile } = body.data;
 
-  const parsed = signupSchema.safeParse(body);
-  if (!parsed.success) {
-    return Response.json(
-      {
-        success: false,
-        message: "Please fix the highlighted fields.",
-        errors: fieldErrors(parsed.error),
-      },
-      { status: 400 }
-    );
-  }
-  const { password, batch, ...profile } = parsed.data;
+  const limited = await rateLimit(request, {
+    name: "signup",
+    limit: 20,
+    windowSeconds: 60 * 60,
+  });
+  if (limited) return limited;
 
   try {
     await connectDB();
-    // Make sure the unique indexes exist before relying on them below.
-    await User.init();
 
     const setting = await Setting.findOne({ key: "allowSignup" }).lean();
     if (setting && !setting.value) {
-      return Response.json(
+      return NextResponse.json(
         { success: false, message: "New registrations are currently closed." },
         { status: 403 }
       );
@@ -46,7 +36,7 @@ export async function POST(request: Request) {
     const usernameTaken = await User.exists({ username: profile.username })
       .collation({ locale: "en", strength: 2 });
     if (usernameTaken) {
-      return Response.json(
+      return NextResponse.json(
         {
           success: false,
           message: "An account with this username already exists.",
@@ -64,7 +54,7 @@ export async function POST(request: Request) {
       password: await hashPassword(password),
     });
 
-    return Response.json(
+    return NextResponse.json(
       {
         success: true,
         message:
@@ -78,7 +68,7 @@ export async function POST(request: Request) {
     if (isDuplicateKeyError(error)) {
       const field = Object.keys(error.keyPattern ?? {})[0];
       const label = field === "username" ? "username" : "email";
-      return Response.json(
+      return NextResponse.json(
         {
           success: false,
           message: `An account with this ${label} already exists.`,
@@ -87,11 +77,7 @@ export async function POST(request: Request) {
         { status: 409 }
       );
     }
-    console.error("Signup failed:", error);
-    return Response.json(
-      { success: false, message: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
+    return serverError("Signup failed", error);
   }
 }
 

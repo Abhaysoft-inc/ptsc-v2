@@ -25,14 +25,19 @@ export async function createSessionToken(userId: string, ttlSeconds: number) {
     .sign(secretKey());
 }
 
-/** Returns the user id, or null if the token is missing, forged or expired. */
+/**
+ * Returns the user id and when the token was issued (ms), or null if the token
+ * is missing, forged or expired.
+ */
 export async function verifySessionToken(token: string) {
   // Read the key outside the try so a missing AUTH_SECRET fails loudly instead
   // of looking like every visitor is signed out.
   const key = secretKey();
   try {
     const { payload } = await jwtVerify(token, key, { algorithms: ["HS256"] });
-    return payload.sub ? { userId: payload.sub } : null;
+    return payload.sub
+      ? { userId: payload.sub, issuedAt: (payload.iat ?? 0) * 1000 }
+      : null;
   } catch {
     return null;
   }

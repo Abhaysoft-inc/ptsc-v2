@@ -36,5 +36,10 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const user = await User.findById(session.userId).lean();
   if (!user || user.status !== "approved") return null;
 
+  // A password change signs out every session started before it.
+  if (user.passwordChangedAt && session.issuedAt < user.passwordChangedAt.getTime()) {
+    return null;
+  }
+
   return toSessionUser(user);
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { DUMMY_HASH, verifyPassword } from "@/lib/auth/password";
+import { serverError } from "@/lib/auth/require-admin";
 import {
   SESSION_COOKIE,
   SESSION_TTL,
@@ -8,32 +9,32 @@ import {
   sessionCookieOptions,
 } from "@/lib/auth/session";
 import { toSessionUser } from "@/lib/auth/user";
-import { fieldErrors, loginSchema } from "@/lib/auth/validation";
+import { loginSchema } from "@/lib/auth/validation";
+import { parseBody } from "@/lib/server/query";
+import { rateLimit } from "@/lib/server/rate-limit";
 import { User } from "@/models/User";
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { success: false, message: "Invalid request body." },
-      { status: 400 }
-    );
-  }
+  const body = await parseBody(request, loginSchema, "Enter your email and password.");
+  if ("response" in body) return body.response;
+  const { email, password, remember } = body.data;
 
-  const parsed = loginSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Enter your email and password.",
-        errors: fieldErrors(parsed.error),
-      },
-      { status: 400 }
-    );
-  }
-  const { email, password, remember } = parsed.data;
+  // Two buckets: one per account (slows guessing a single password) and a
+  // looser one per IP (slows spraying many accounts). Campus Wi-Fi shares IPs,
+  // so the IP limit is generous.
+  const limited = await rateLimit(request, {
+    name: "login",
+    limit: 10,
+    windowSeconds: 15 * 60,
+    by: email,
+  });
+  if (limited) return limited;
+  const limitedByIp = await rateLimit(request, {
+    name: "login-ip",
+    limit: 60,
+    windowSeconds: 15 * 60,
+  });
+  if (limitedByIp) return limitedByIp;
 
   try {
     await connectDB();
@@ -79,10 +80,6 @@ export async function POST(request: Request) {
     );
     return response;
   } catch (error) {
-    console.error("Login failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
+    return serverError("Login failed", error);
   }
 }

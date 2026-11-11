@@ -1,15 +1,9 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { eventsList, getEventById } from "@/lib/events";
+import { getPublicEvent } from "@/lib/server/public-events";
 import EventRegisterClient from "./EventRegisterClient";
 
 export const instant = false;
-
-export async function generateStaticParams() {
-  return eventsList.map((event) => ({
-    id: event.id,
-  }));
-}
 
 async function EventRegisterContent({
   params,
@@ -17,7 +11,7 @@ async function EventRegisterContent({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const event = getEventById(id);
+  const event = await getPublicEvent(id);
 
   if (!event) {
     notFound();

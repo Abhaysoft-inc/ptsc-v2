@@ -37,13 +37,14 @@ const patchSchema = z.object({ action: z.literal("restore") });
 export async function PATCH(request: Request, { params }: Context) {
   const { id } = await params;
   if (!isObjectId(id)) return notFound("Registration not found.");
-  if (!patchSchema.safeParse(await readJson(request)).success) {
-    return badRequest('Expected { "action": "restore" }.');
-  }
 
   try {
     const auth = await requireAdmin();
     if ("response" in auth) return auth.response;
+
+    if (!patchSchema.safeParse(await readJson(request)).success) {
+      return badRequest('Expected { "action": "restore" }.');
+    }
 
     await connectDB();
     const result = await EventRegistration.updateOne(

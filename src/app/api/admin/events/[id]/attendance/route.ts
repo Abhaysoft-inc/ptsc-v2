@@ -26,14 +26,14 @@ export async function PATCH(request: Request, { params }: Context) {
   const { id } = await params;
   if (!isObjectId(id)) return notFound("Event not found.");
 
-  const parsed = bodySchema.safeParse(await readJson(request));
-  if (!parsed.success) {
-    return badRequest(parsed.error.issues[0]?.message ?? "Invalid changes.");
-  }
-
   try {
     const auth = await requireStaff();
     if ("response" in auth) return auth.response;
+
+    const parsed = bodySchema.safeParse(await readJson(request));
+    if (!parsed.success) {
+      return badRequest(parsed.error.issues[0]?.message ?? "Invalid changes.");
+    }
 
     await connectDB();
     const now = new Date();

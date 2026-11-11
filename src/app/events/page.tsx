@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -12,11 +13,13 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
-import { eventsList, getHeroFeaturedEvent } from "@/lib/events";
+import { getHeroFeaturedEvent } from "@/lib/events";
+import { getPublicEventsSafe } from "@/lib/server/public-events";
 import Reveal from "@/components/motion/Reveal";
 
-export default function EventsPage() {
-  const heroData = getHeroFeaturedEvent();
+async function EventsContent() {
+  const eventsList = await getPublicEventsSafe();
+  const heroData = getHeroFeaturedEvent(eventsList);
   const featuredEvent = heroData?.event;
   const isUpcoming = heroData?.isUpcoming ?? true;
 
@@ -35,6 +38,7 @@ export default function EventsPage() {
               alt={featuredEvent.title}
               fill
               priority
+              unoptimized={featuredEvent.image.startsWith("http")}
               sizes="100vw"
               className="object-cover object-center scale-105"
             />
@@ -79,17 +83,19 @@ export default function EventsPage() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-neutral-400" />
                 <span className="font-medium text-white">
-                  {featuredEvent.month} {featuredEvent.day}, {featuredEvent.year || "2026"}
+                  {featuredEvent.month} {featuredEvent.day}, {featuredEvent.year}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-neutral-400" />
-                <span>{featuredEvent.time || "10:00 AM – 3:30 PM EST"}</span>
+                <span>{featuredEvent.time}</span>
               </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-neutral-400" />
                 <span>
-                  {featuredEvent.locationTitle}, {featuredEvent.locationSubtitle}
+                  {[featuredEvent.locationTitle, featuredEvent.locationSubtitle]
+                    .filter(Boolean)
+                    .join(", ")}
                 </span>
               </div>
             </div>
@@ -142,23 +148,45 @@ export default function EventsPage() {
 
             <div className="text-xs text-neutral-400 flex items-center gap-2 shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>{eventsList.length} Active Sessions</span>
+              <span>
+                {eventsList.length} {eventsList.length === 1 ? "Event" : "Events"}
+              </span>
             </div>
           </div>
 
           {/* 3-Column Zero-Bezel Events Grid */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            {eventsList.map((event, i) => (
-              <Reveal key={event.id} className="h-full" delay={(i % 3) * 0.1}>
-                <EventCard event={event} />
-              </Reveal>
-            ))}
-          </div>
+          {eventsList.length > 0 ? (
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {eventsList.map((event, i) => (
+                <Reveal key={event.id} className="h-full" delay={(i % 3) * 0.1}>
+                  <EventCard event={event} />
+                </Reveal>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-12 text-center text-sm text-neutral-400">
+              No events are scheduled right now. Check back soon.
+            </p>
+          )}
         </div>
       </section>
 
       {/* Site Footer */}
       <Footer />
     </div>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#080809] flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <EventsContent />
+    </Suspense>
   );
 }

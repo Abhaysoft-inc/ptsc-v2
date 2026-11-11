@@ -17,12 +17,12 @@ export async function POST(request: Request, { params }: Context) {
   const { id } = await params;
   if (!isObjectId(id)) return notFound("Event not found.");
 
-  const parsed = bodySchema.safeParse(await readJson(request));
-  if (!parsed.success) return badRequest("Enter a registration ID or roll number.");
-
   try {
     const auth = await requireStaff();
     if ("response" in auth) return auth.response;
+
+    const parsed = bodySchema.safeParse(await readJson(request));
+    if (!parsed.success) return badRequest("Enter a registration ID or roll number.");
 
     // Whole-value, case-insensitive match (e.g. "ptsc25e12" finds PTSC25E12).
     const exact = { $regex: `^${escapeRegex(parsed.data.code)}$`, $options: "i" };

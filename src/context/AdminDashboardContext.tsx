@@ -3,23 +3,14 @@
 import React, { createContext, useContext, useState } from "react";
 import type { SessionUser } from "@/lib/auth/types";
 import {
-  INITIAL_EVENTS,
-  INITIAL_USERS,
-  INITIAL_REGISTRATIONS,
   INITIAL_MEDIA,
   INITIAL_ADVISORS,
-  AdminEvent,
-  AdminUser,
-  Registration,
   MediaItem,
   FacultyAdvisor,
   DashboardRole,
 } from "@/lib/dashboard";
 
 interface AdminDashboardContextType {
-  events: AdminEvent[];
-  users: AdminUser[];
-  registrations: Registration[];
   media: MediaItem[];
   advisors: FacultyAdvisor[];
   /** The signed-in user. */
@@ -30,10 +21,6 @@ interface AdminDashboardContextType {
    */
   role: DashboardRole;
   setRole: (role: DashboardRole) => void;
-  handleCreateEvent: (
-    eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
-  ) => void;
-  handleDeleteEvent: (id: string) => void;
   handleAddMedia: (item: Omit<MediaItem, "id" | "uploadedAt">) => void;
   handleDeleteMedia: (id: string) => void;
   handleSaveAdvisor: (advisor: Omit<FacultyAdvisor, "id"> & { id?: string }) => void;
@@ -51,33 +38,12 @@ export function AdminDashboardProvider({
   children: React.ReactNode;
   user: SessionUser;
 }) {
-  const [events, setEvents] = useState<AdminEvent[]>(INITIAL_EVENTS);
-  // Sample data, only used for the Overview count. The Users page loads real
-  // accounts from /api/admin/users.
-  const [users] = useState<AdminUser[]>(INITIAL_USERS);
-  // Sample data, only used for the Overview numbers. The Registrations and
-  // Attendance pages load real data from the API.
-  const [registrations] = useState<Registration[]>(INITIAL_REGISTRATIONS);
+  // Events, users, registrations and the overview load from /api/admin/*. Media
+  // and advisors are still sample data held in memory.
   const [media, setMedia] = useState<MediaItem[]>(INITIAL_MEDIA);
   const [advisors, setAdvisors] = useState<FacultyAdvisor[]>(INITIAL_ADVISORS);
   // No auth backend yet; the sidebar lets you preview each role's tab access.
   const [role, setRole] = useState<DashboardRole>(user.role);
-
-  const handleCreateEvent = (
-    eventData: Omit<AdminEvent, "id" | "registeredCount" | "attendedCount">
-  ) => {
-    const newEvent: AdminEvent = {
-      ...eventData,
-      id: `evt-${Date.now()}`,
-      registeredCount: 0,
-      attendedCount: 0,
-    };
-    setEvents((prev) => [newEvent, ...prev]);
-  };
-
-  const handleDeleteEvent = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
-  };
 
   const handleAddMedia = (item: Omit<MediaItem, "id" | "uploadedAt">) => {
     const uploadedAt = new Date().toLocaleDateString("en-US", {
@@ -116,16 +82,11 @@ export function AdminDashboardProvider({
   return (
     <AdminDashboardContext.Provider
       value={{
-        events,
-        users,
-        registrations,
         media,
         advisors,
         currentUser: user,
         role,
         setRole,
-        handleCreateEvent,
-        handleDeleteEvent,
         handleAddMedia,
         handleDeleteMedia,
         handleSaveAdvisor,

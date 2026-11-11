@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -8,64 +7,45 @@ import {
   Ticket,
   BookOpen,
   ArrowUpRight,
-  X,
-  ShieldCheck,
-  Clock,
-  Sparkles,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { EventData } from "@/lib/events";
+import type { PublicEvent } from "@/lib/events";
 import Reveal from "@/components/motion/Reveal";
 
 interface EventDetailClientProps {
-  event: EventData;
+  event: PublicEvent;
 }
 
 export default function EventDetailClient({ event }: EventDetailClientProps) {
-  const [showRulebookModal, setShowRulebookModal] = useState(false);
+  // Hosts are only shown for events that list them.
+  const hosts = (event.speakers ?? []).map((sp, idx) => ({
+    initials: sp.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase(),
+    name: sp.name,
+    isHost: idx === 0,
+    color:
+      idx === 0
+        ? "bg-[#6366f1]" // Indigo/Purple
+        : idx === 1
+        ? "bg-[#10b981]" // Emerald/Green
+        : "bg-[#f59e0b]", // Amber/Orange
+  }));
 
-  // Pre-configured hosts with color badges matching the design
-  const hosts = event.speakers && event.speakers.length > 0
-    ? event.speakers.map((sp, idx) => ({
-        initials: sp.name
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .slice(0, 2)
-          .toUpperCase(),
-        name: sp.name,
-        isHost: idx === 0,
-        color:
-          idx === 0
-            ? "bg-[#6366f1]" // Indigo/Purple
-            : idx === 1
-            ? "bg-[#10b981]" // Emerald/Green
-            : "bg-[#f59e0b]", // Amber/Orange
-      }))
-    : [
-        {
-          initials: "JA",
-          name: "John Arowoka",
-          isHost: true,
-          color: "bg-[#6366f1]",
-        },
-        {
-          initials: "DC",
-          name: "Daniel Chillwell",
-          isHost: false,
-          color: "bg-[#10b981]",
-        },
-        {
-          initials: "FO",
-          name: "Faith Onasanya",
-          isHost: false,
-          color: "bg-[#f59e0b]",
-        },
-      ];
-
-  const whatsappUrl =
-    event.whatsappLink || "https://chat.whatsapp.com/invite/example-ptsc-community";
+  // Where the Register button goes. A Google Form (when the event uses one)
+  // opens in a new tab; otherwise it's our own form.
+  const reg = event.registration;
+  const googleForm =
+    reg.googleFormLink && (reg.forceGoogleForm || !reg.useCustomForm)
+      ? reg.googleFormLink
+      : null;
+  const registerClass =
+    "w-full mt-4 py-3.5 px-6 rounded-full font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 select-none shadow-lg";
+  const whereWhen = [event.locationTitle, event.locationSubtitle].filter(Boolean).join(", ");
 
   return (
     <div className="relative min-h-screen bg-[#080809] text-white selection:bg-white selection:text-black overflow-x-hidden">
@@ -79,6 +59,7 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
           alt={event.title}
           fill
           priority
+          unoptimized={event.image.startsWith("http")}
           className="object-cover blur-3xl scale-125 opacity-35"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-[#080809]/80 to-[#080809]" />
@@ -108,6 +89,7 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
                 alt={event.title}
                 fill
                 priority
+                unoptimized={event.image.startsWith("http")}
                 sizes="(max-width: 768px) 100vw, 420px"
                 className="object-cover"
               />
@@ -115,25 +97,47 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
               {/* Status Pill Badge (Top-Right) */}
               <div className="absolute top-3.5 right-3.5 z-10">
                 <span className="inline-flex items-center rounded-full bg-black/60 backdrop-blur-md px-3 py-1 text-[11px] font-semibold text-white border border-white/15 tracking-wide">
-                  Starts in 3H
+                  {event.status === "past" ? "Event ended" : "Upcoming"}
                 </span>
               </div>
             </div>
 
-            {/* Register Action Button leading to dedicated registration page */}
-            <Link
-              href={`/events/${event.id}/register`}
-              className="w-full mt-4 py-3.5 px-6 rounded-full font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 select-none shadow-lg cursor-pointer bg-white hover:bg-neutral-200 text-black shadow-white/10 hover:scale-[1.01] active:scale-[0.99]"
-            >
-              <Ticket className="w-4 h-4" />
-              <span>Register for this Event</span>
-            </Link>
+            {/* Register Action: our own form, a Google Form, or closed */}
+            {!event.registrationOpen ? (
+              <span
+                aria-disabled="true"
+                className={`${registerClass} bg-white/10 text-neutral-400 cursor-not-allowed`}
+              >
+                <Ticket className="w-4 h-4" />
+                <span>Registration closed</span>
+              </span>
+            ) : googleForm ? (
+              <a
+                href={googleForm}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${registerClass} cursor-pointer bg-white hover:bg-neutral-200 text-black shadow-white/10 hover:scale-[1.01] active:scale-[0.99]`}
+              >
+                <Ticket className="w-4 h-4" />
+                <span>Register for this Event</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </a>
+            ) : (
+              <Link
+                href={`/events/${event.id}/register`}
+                className={`${registerClass} cursor-pointer bg-white hover:bg-neutral-200 text-black shadow-white/10 hover:scale-[1.01] active:scale-[0.99]`}
+              >
+                <Ticket className="w-4 h-4" />
+                <span>Register for this Event</span>
+              </Link>
+            )}
 
             {/* Event Quick-Action Cards: WhatsApp Group & Rulebook */}
             <div className="w-full mt-4 flex flex-col gap-2.5">
               {/* WhatsApp Card */}
+              {event.whatsappLink && (
               <a
-                href={whatsappUrl}
+                href={event.whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center justify-between p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer bg-[#141416] hover:bg-[#1a1a1d] border-white/10 hover:border-white/20"
@@ -160,11 +164,14 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
 
                 <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
               </a>
+              )}
 
               {/* Event Rulebook Card */}
-              <button
-                type="button"
-                onClick={() => setShowRulebookModal(true)}
+              {event.rulebookUrl && (
+              <a
+                href={event.rulebookUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="group flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all duration-200 cursor-pointer bg-[#141416] hover:bg-[#1a1a1d] border-white/10 hover:border-white/20"
               >
                 <div className="flex items-center gap-3">
@@ -173,18 +180,17 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-xs sm:text-sm font-semibold text-white">
-                      Event Rulebook & FAQs
+                      Event Rulebook
                     </span>
                     <span className="text-[11px] sm:text-xs text-neutral-400">
-                      Code of conduct, schedule & gear
+                      Rules, schedule & guidelines
                     </span>
                   </div>
                 </div>
 
-                <span className="text-xs font-medium text-neutral-400 group-hover:text-white transition-colors">
-                  View
-                </span>
-              </button>
+                <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:text-white transition-colors" />
+              </a>
+              )}
             </div>
           </div>
 
@@ -192,8 +198,7 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
           <div className="md:col-span-7 flex flex-col">
             {/* Date & Time Header */}
             <span className="text-xs sm:text-sm font-medium text-neutral-400 tracking-wide">
-              {event.month ? `Wed, ${event.day} ${event.month}` : "Wed, 12 April"}{" "}
-              • {event.time ? event.time.split("–")[0].trim() : "9pm"}
+              {event.month} {event.day}, {event.year} • {event.time}
             </span>
 
             {/* Big Event Title */}
@@ -203,28 +208,36 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
 
             {/* Sub-meta Details row */}
             <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-2.5 text-xs sm:text-[13px] text-neutral-400">
-              <span>Multi session</span>
-              <span>•</span>
-              <span>Weekly</span>
-              <span>•</span>
-              <div className="flex items-center gap-1.5">
-                <span>Guest</span>
-                {/* Guest Initial Avatars */}
-                <div className="flex -space-x-1.5 overflow-hidden items-center ml-0.5">
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#06b6d4] text-[9px] font-bold text-white ring-1.5 ring-[#080809]">
-                    AS
+              <span>{event.tag}</span>
+              {whereWhen && (
+                <>
+                  <span>•</span>
+                  <span>{whereWhen}</span>
+                </>
+              )}
+              {event.registration.type === "team" && (
+                <>
+                  <span>•</span>
+                  <span>
+                    Teams of {event.registration.teamMinSize}
+                    {event.registration.teamMaxSize !== event.registration.teamMinSize
+                      ? `–${event.registration.teamMaxSize}`
+                      : ""}
                   </span>
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#ec4899] text-[9px] font-bold text-white ring-1.5 ring-[#080809]">
-                    FA
-                  </span>
-                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#10b981] text-[9px] font-bold text-white ring-1.5 ring-[#080809]">
-                    TA
-                  </span>
-                </div>
-                <span className="text-xs text-neutral-400 font-medium ml-0.5">
-                  32+
-                </span>
-              </div>
+                </>
+              )}
+              {event.attendees ? (
+                <>
+                  <span>•</span>
+                  <span>{event.attendees} registered</span>
+                </>
+              ) : null}
+              {event.spotsLeft !== undefined && event.status !== "past" && (
+                <>
+                  <span>•</span>
+                  <span>{event.spotsLeft === 0 ? "Full" : `${event.spotsLeft} spots left`}</span>
+                </>
+              )}
             </div>
 
             {/* Description Section */}
@@ -237,7 +250,32 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
               </p>
             </div>
 
+            {/* Resources */}
+            {event.resources.length > 0 && (
+              <div className="mt-9 flex flex-col">
+                <h2 className="text-xs sm:text-sm font-semibold text-neutral-400 uppercase tracking-wider">
+                  Resources
+                </h2>
+                <ul className="mt-4 flex flex-col gap-2.5">
+                  {event.resources.map((r) => (
+                    <li key={r.url}>
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-neutral-200 hover:text-white underline-offset-4 hover:underline"
+                      >
+                        <span>{r.label}</span>
+                        <ArrowUpRight className="w-3.5 h-3.5 text-neutral-500" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {/* Event Host Section */}
+            {hosts.length > 0 && (
             <div className="mt-9 flex flex-col">
               <h2 className="text-xs sm:text-sm font-semibold text-neutral-400 uppercase tracking-wider">
                 Event Host
@@ -268,115 +306,11 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
                 ))}
               </div>
             </div>
+            )}
           </div>
         </Reveal>
       </div>
 
-      {/* Rulebook Modal */}
-      {showRulebookModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
-          onClick={() => setShowRulebookModal(false)}
-        >
-          <div
-            className="relative w-full max-w-xl bg-[#141417] border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-5 h-5 text-indigo-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                    Event Rulebook & Guidelines
-                  </h3>
-                  <span className="text-xs text-neutral-400">
-                    Official code of conduct & attendee expectations
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowRulebookModal(false)}
-                className="p-1.5 rounded-full text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
-                aria-label="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scrollable Rules Content */}
-            <div className="mt-5 overflow-y-auto pr-2 flex flex-col gap-5 text-sm text-neutral-300">
-              {/* Section 1 */}
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="flex items-center gap-2 font-semibold text-white">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>1. Safe & Inclusive Space</span>
-                </div>
-                <p className="text-xs sm:text-[13px] text-neutral-400 leading-relaxed">
-                  Harassment of any kind, discriminatory language, or unwanted
-                  advances are strictly prohibited. Treat all builders, hackers,
-                  and speakers with respect.
-                </p>
-              </div>
-
-              {/* Section 2 */}
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="flex items-center gap-2 font-semibold text-white">
-                  <Clock className="w-4 h-4 text-indigo-400" />
-                  <span>2. Check-in & Timings</span>
-                </div>
-                <p className="text-xs sm:text-[13px] text-neutral-400 leading-relaxed">
-                  Doors open 30 minutes prior to kickoff. Please arrive early to
-                  claim your seat and check in with your digital confirmation badge.
-                </p>
-              </div>
-
-              {/* Section 3 */}
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="flex items-center gap-2 font-semibold text-white">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>3. What to Bring</span>
-                </div>
-                <p className="text-xs sm:text-[13px] text-neutral-400 leading-relaxed">
-                  Bring your laptop, charger, valid student/government ID, and an open
-                  mind ready to collaborate. Power strips and high-speed Wi-Fi will be
-                  provided at the venue.
-                </p>
-              </div>
-
-              {/* Section 4 */}
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                <div className="flex items-center gap-2 font-semibold text-white">
-                  <Ticket className="w-4 h-4 text-blue-400" />
-                  <span>4. Cancellations & Waitlist</span>
-                </div>
-                <p className="text-xs sm:text-[13px] text-neutral-400 leading-relaxed">
-                  If you cannot attend, please release your spot at least 24 hours in
-                  advance so fellow builders on the waitlist can take your place.
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between gap-3">
-              <span className="text-xs text-neutral-500">
-                PTSC Community Guidelines v2.4
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowRulebookModal(false)}
-                className="px-5 py-2.5 rounded-xl bg-white text-black font-semibold text-xs sm:text-sm hover:bg-neutral-200 transition-colors"
-              >
-                I Understand
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Minimal Footer */}
       <Footer />
     </div>

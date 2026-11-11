@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin } from "lucide-react";
@@ -22,10 +23,15 @@ export default function EventCard({ event }: EventCardProps) {
     locationSubtitle,
   } = event;
 
+  // Cover images are links to other websites, which can go missing. Fall back
+  // to the default image instead of showing a broken one.
+  const [failed, setFailed] = useState(false);
+  const src = failed ? "/bg.jpg" : image;
+
   return (
     <Link
       href={`/events/${id}`}
-      className="group relative flex flex-col justify-between rounded-2xl bg-[#171717] border border-white/[0.08] hover:border-white/20 overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 select-none cursor-pointer"
+      className="group relative flex h-full flex-col justify-between rounded-2xl bg-[#171717] border border-white/[0.08] hover:border-white/20 overflow-hidden transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 select-none cursor-pointer"
     >
       {/* Top Text Content Area */}
       <div className="flex flex-col px-6 sm:px-7 pt-6 sm:pt-7 pb-5">
@@ -48,10 +54,12 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
 
         {/* Title & Description */}
-        <h3 className="mt-5 text-2xl sm:text-[26px] font-bold text-white tracking-tight leading-tight group-hover:text-white transition-colors">
+        {/* Fixed two-line title and three-line description slots, so every
+            card in a row lines up whatever the text length. */}
+        <h3 className="mt-5 min-h-[2.5em] line-clamp-2 text-2xl sm:text-[26px] font-bold text-white tracking-tight leading-tight group-hover:text-white transition-colors">
           {title}
         </h3>
-        <p className="mt-2.5 text-neutral-400 text-sm sm:text-[14.5px] leading-relaxed line-clamp-3">
+        <p className="mt-2.5 min-h-[4.5rem] text-neutral-400 text-sm sm:text-[14.5px] leading-relaxed line-clamp-3">
           {description}
         </p>
       </div>
@@ -59,9 +67,13 @@ export default function EventCard({ event }: EventCardProps) {
       {/* Bottom Image Container - Full bleed with zero bezels */}
       <div className="relative w-full h-[260px] sm:h-[285px] rounded-t-2xl overflow-hidden bg-neutral-900 mt-auto">
         <Image
-          src={image}
+          src={src}
           alt={title}
           fill
+          // Cover images can be any website, which next/image only allows for
+          // hosts listed in next.config. Remote ones are served as they are.
+          unoptimized={src.startsWith("http")}
+          onError={() => setFailed(true)}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
@@ -76,9 +88,11 @@ export default function EventCard({ event }: EventCardProps) {
             <span className="text-[15px] sm:text-base font-bold text-white leading-tight drop-shadow-md">
               {locationTitle}
             </span>
-            <span className="text-xs sm:text-[13px] text-neutral-300 font-normal leading-tight mt-0.5 drop-shadow-md">
-              {locationSubtitle}
-            </span>
+            {locationSubtitle && (
+              <span className="text-xs sm:text-[13px] text-neutral-300 font-normal leading-tight mt-0.5 drop-shadow-md">
+                {locationSubtitle}
+              </span>
+            )}
           </div>
         </div>
       </div>

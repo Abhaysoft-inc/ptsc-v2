@@ -1,6 +1,8 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import type { z } from "zod";
+import { fieldErrors } from "@/lib/auth/validation";
 
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 100;
@@ -54,6 +56,25 @@ export async function readJson(request: Request): Promise<unknown> {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Reads and validates a JSON body. Returns the parsed data, or a ready-made 400
+ * response with per-field messages. Call it after the auth check, so signed-out
+ * callers get a 401 rather than a validation error.
+ */
+export async function parseBody<S extends z.ZodType>(
+  request: Request,
+  schema: S,
+  message = "Please check the highlighted values."
+): Promise<{ data: z.output<S> } | { response: NextResponse }> {
+  const body = await readJson(request);
+  if (body === undefined) return { response: badRequest("Invalid request body.") };
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return { response: badRequest(message, fieldErrors(parsed.error)) };
+  }
+  return { data: parsed.data };
 }
 
 export const noStore = { headers: { "Cache-Control": "no-store" } };

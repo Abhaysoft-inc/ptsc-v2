@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 import { safeNext } from "@/lib/auth/redirect";
+import { isCrossSiteWrite } from "@/lib/server/origin";
 
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
@@ -11,6 +12,19 @@ const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 // /api/auth/session-expired, which stops /login <-> /dashboard bouncing.
 export async function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;
+
+  // API routes do their own auth. Here we only refuse state-changing requests
+  // that a browser sent from another website.
+  if (pathname.startsWith("/api/")) {
+    if (isCrossSiteWrite(request)) {
+      return NextResponse.json(
+        { success: false, message: "Cross-site requests are not allowed." },
+        { status: 403 }
+      );
+    }
+    return NextResponse.next();
+  }
+
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const signedIn = token ? await verifySessionToken(token) : null;
 
@@ -34,5 +48,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/signup", "/forgot-password"],
+  matcher: ["/dashboard/:path*", "/login", "/signup", "/forgot-password", "/api/:path*"],
 };

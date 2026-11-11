@@ -10,9 +10,10 @@ type Context = { params: Promise<{ id: string }> };
 
 function csvCell(value: unknown) {
   const text = value === null || value === undefined ? "" : String(value);
-  // Quote anything with separators, and neutralise leading = + - @ so Excel
-  // doesn't run a cell as a formula.
-  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  // Quote anything with separators, and neutralise a leading = + - @ (or tab /
+  // carriage return, which some spreadsheets skip before reading a formula) so
+  // Excel doesn't run a cell as a formula.
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
   return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 

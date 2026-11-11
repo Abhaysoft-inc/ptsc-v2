@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { requireAdmin, serverError } from "@/lib/auth/require-admin";
-import { fieldErrors } from "@/lib/auth/validation";
+import { badRequest, isObjectId, notFound, parseBody } from "@/lib/server/query";
 import { USER_POSTS, USER_ROLES, User } from "@/models/User";
 
 type Context = { params: Promise<{ id: string }> };
@@ -18,65 +17,32 @@ const patchSchema = z.union([
   }),
 ]);
 
-function badId() {
-  return NextResponse.json(
-    { success: false, message: "User not found." },
-    { status: 404 }
-  );
-}
-
 export async function PATCH(request: Request, { params }: Context) {
   const { id } = await params;
-  if (!mongoose.isValidObjectId(id)) return badId();
-
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { success: false, message: "Invalid request body." },
-      { status: 400 }
-    );
-  }
-  const parsed = patchSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid values.",
-        errors: fieldErrors(parsed.error),
-      },
-      { status: 400 }
-    );
-  }
+  if (!isObjectId(id)) return notFound("User not found.");
 
   try {
     const auth = await requireAdmin();
     if ("response" in auth) return auth.response;
 
+    const body = await parseBody(request, patchSchema, "Invalid values.");
+    if ("response" in body) return body.response;
+    const data = body.data;
+
     await connectDB();
-    const data = parsed.data;
 
     if ("action" in data) {
       const result = await User.updateOne(
         { _id: id, status: "pending" },
         { $set: { status: "approved" } }
       );
-      if (result.matchedCount === 0) {
-        return NextResponse.json(
-          { success: false, message: "No pending request for this user." },
-          { status: 404 }
-        );
-      }
+      if (result.matchedCount === 0) return notFound("No pending request for this user.");
       return NextResponse.json({ success: true, message: "User approved." });
     }
 
     // An admin changing their own role could leave the site with no admin.
     if (id === auth.user.id && data.role !== auth.user.role) {
-      return NextResponse.json(
-        { success: false, message: "You can't change your own role." },
-        { status: 400 }
-      );
+      return badRequest("You can't change your own role.");
     }
 
     // The old schema has no null batch: "no batch" is a missing field.
@@ -87,7 +53,7 @@ export async function PATCH(request: Request, { params }: Context) {
     const result = await User.updateOne({ _id: id }, update, {
       runValidators: true,
     });
-    if (result.matchedCount === 0) return badId();
+    if (result.matchedCount === 0) return notFound("User not found.");
 
     return NextResponse.json({ success: true, message: "User updated." });
   } catch (error) {
@@ -99,22 +65,17 @@ export async function PATCH(request: Request, { params }: Context) {
 // too).
 export async function DELETE(_request: Request, { params }: Context) {
   const { id } = await params;
-  if (!mongoose.isValidObjectId(id)) return badId();
+  if (!isObjectId(id)) return notFound("User not found.");
 
   try {
     const auth = await requireAdmin();
     if ("response" in auth) return auth.response;
 
-    if (id === auth.user.id) {
-      return NextResponse.json(
-        { success: false, message: "You can't delete your own account." },
-        { status: 400 }
-      );
-    }
+    if (id === auth.user.id) return badRequest("You can't delete your own account.");
 
     await connectDB();
     const result = await User.deleteOne({ _id: id });
-    if (result.deletedCount === 0) return badId();
+    if (result.deletedCount === 0) return notFound("User not found.");
 
     return NextResponse.json({ success: true, message: "User deleted." });
   } catch (error) {

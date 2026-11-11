@@ -8,19 +8,23 @@ import {
   Clock,
   Users,
   Trash2,
+  Pencil,
   Plus,
 } from "lucide-react";
-import { AdminEvent } from "@/lib/dashboard";
+import type { AdminEvent } from "@/lib/types/admin";
 import StaggerList from "@/components/motion/StaggerList";
 import PillTabs from "@/components/dashboard/PillTabs";
 
-const EVENT_FILTERS = ["All", "Active", "Upcoming", "Completed"] as const;
+const EVENT_FILTERS = ["All", "Active", "Upcoming", "Completed", "Draft"] as const;
 
 interface AdminEventsViewProps {
   events: AdminEvent[];
-  /** Admins and members can create, check in and delete; normal users can only browse. */
+  /** Admins and members can create, edit and check in; normal users can only browse. */
   canManage: boolean;
+  /** Only admins can delete. */
+  canDelete: boolean;
   onCreateEvent: () => void;
+  onEditEvent: (id: string) => void;
   onOpenAttendance: (eventId: string) => void;
   onDeleteEvent: (id: string) => void;
 }
@@ -28,12 +32,14 @@ interface AdminEventsViewProps {
 export default function AdminEventsView({
   events,
   canManage,
+  canDelete,
   onCreateEvent,
+  onEditEvent,
   onOpenAttendance,
   onDeleteEvent,
 }: AdminEventsViewProps) {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"All" | "Active" | "Upcoming" | "Completed">("All");
+  const [filter, setFilter] = useState<(typeof EVENT_FILTERS)[number]>("All");
 
   const filteredEvents = events.filter((evt) => {
     const matchesSearch =
@@ -86,10 +92,11 @@ export default function AdminEventsView({
       {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filteredEvents.map((evt) => {
-          const percentRegistered = Math.min(
-            100,
-            Math.round((evt.registeredCount / evt.capacity) * 100)
-          );
+          // Capacity 0 means no limit, so there's no fill to show.
+          const percentRegistered =
+            evt.capacity > 0
+              ? Math.min(100, Math.round((evt.registeredCount / evt.capacity) * 100))
+              : 0;
 
           return (
             <div
@@ -111,7 +118,7 @@ export default function AdminEventsView({
                     {evt.status}
                   </span>
                   <span className="text-[11px] text-neutral-400 font-mono">
-                    {evt.category}
+                    {evt.category || "Uncategorised"}
                   </span>
                 </div>
 
@@ -140,11 +147,11 @@ export default function AdminEventsView({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-4 border-t border-white/[0.06] text-xs text-neutral-400">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-                    <span className="truncate">{evt.time}</span>
+                    <span className="truncate">{evt.time || "Time to be announced"}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-                    <span className="truncate">{evt.venue}</span>
+                    <span className="truncate">{evt.venue || "Venue to be announced"}</span>
                   </div>
                 </div>
 
@@ -152,18 +159,23 @@ export default function AdminEventsView({
                 <div className="mt-4 space-y-1.5">
                   <div className="flex items-center justify-between text-[11px] text-neutral-400 font-mono">
                     <span>
-                      Registered: <strong className="text-white">{evt.registeredCount}</strong> / {evt.capacity}
+                      Registered: <strong className="text-white">{evt.registeredCount}</strong>
+                      {evt.capacity > 0 ? ` / ${evt.capacity}` : " · no limit"}
                     </span>
-                    <span className="text-emerald-400">{percentRegistered}%</span>
+                    {evt.capacity > 0 && (
+                      <span className="text-emerald-400">{percentRegistered}%</span>
+                    )}
                   </div>
-                  <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${
-                        percentRegistered >= 90 ? "bg-amber-400" : "bg-emerald-400"
-                      }`}
-                      style={{ width: `${percentRegistered}%` }}
-                    />
-                  </div>
+                  {evt.capacity > 0 && (
+                    <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          percentRegistered >= 90 ? "bg-amber-400" : "bg-emerald-400"
+                        }`}
+                        style={{ width: `${percentRegistered}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -182,12 +194,24 @@ export default function AdminEventsView({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => onDeleteEvent(evt.id)}
-                      title="Archive Event"
-                      className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => onEditEvent(evt.id)}
+                      title="Edit event"
+                      aria-label={`Edit ${evt.title}`}
+                      className="p-1.5 text-neutral-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" />
                     </button>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteEvent(evt.id)}
+                        title="Delete event"
+                        aria-label={`Delete ${evt.title}`}
+                        className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

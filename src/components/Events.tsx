@@ -1,11 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { Users } from "lucide-react";
 import EventCard from "./EventCard";
-import { eventsList } from "@/lib/events";
+import type { EventData } from "@/lib/events";
 import Reveal from "@/components/motion/Reveal";
 
-export default function Events() {
+// The landing page shows the next few events; /events has the full list.
+const SHOWN = 3;
+
+export default function Events({ events }: { events: EventData[] }) {
+  const shown = events.slice(0, SHOWN);
+  const joined = events.reduce((sum, e) => sum + (e.attendees ?? 0), 0);
+
   return (
     <section
       id="events"
@@ -24,20 +31,39 @@ export default function Events() {
             </p>
           </div>
 
-          <div className="text-xs text-neutral-400 flex items-center gap-2 shrink-0">
-            <Users className="w-4 h-4 text-neutral-500" />
-            <span>350+ students have joined past sessions</span>
-          </div>
+          {joined > 0 && (
+            <div className="text-xs text-neutral-400 flex items-center gap-2 shrink-0">
+              <Users className="w-4 h-4 text-neutral-500" />
+              <span>{joined.toLocaleString("en-IN")} registrations across our events</span>
+            </div>
+          )}
         </Reveal>
 
         {/* Events Cards Grid */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {eventsList.map((event, i) => (
-            <Reveal key={event.id} className="h-full" delay={(i % 3) * 0.1}>
-              <EventCard event={event} />
-            </Reveal>
-          ))}
-        </div>
+        {shown.length > 0 ? (
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {shown.map((event, i) => (
+              <Reveal key={event.id} className="h-full" delay={(i % 3) * 0.1}>
+                <EventCard event={event} />
+              </Reveal>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-12 text-center text-sm text-neutral-400">
+            No events are scheduled right now. Check back soon.
+          </p>
+        )}
+
+        {events.length > SHOWN && (
+          <div className="mt-10 text-center">
+            <Link
+              href="/events"
+              className="inline-flex items-center rounded-full border border-white/15 bg-white/5 hover:bg-white/10 px-5 py-2.5 text-sm font-medium text-white transition-colors"
+            >
+              See all events
+            </Link>
+          </div>
+        )}
       </div>
     </section>
   );

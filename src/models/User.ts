@@ -47,6 +47,8 @@ const userSchema = new Schema({
   post: { type: String, enum: USER_POSTS },
   resetPasswordToken: { type: String, select: false },
   resetPasswordExpire: { type: Date, select: false },
+  // Set whenever the password changes. Sessions issued before it stop working.
+  passwordChangedAt: Date,
 
   // Public profile fields present on some existing accounts. The old repo
   // never declared them; types match the stored data.

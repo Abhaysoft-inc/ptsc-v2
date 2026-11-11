@@ -10,39 +10,35 @@ import {
   ChevronRight,
   Plus,
 } from "lucide-react";
-import {
-  AdminEvent,
-  AdminUser,
-  Registration,
-  formatRegistrationId,
-} from "@/lib/dashboard";
+import type { OverviewData } from "@/lib/types/admin";
 import { DashboardTab } from "./DashboardSidebar";
 import StaggerList from "@/components/motion/StaggerList";
 
 interface AdminOverviewViewProps {
-  events: AdminEvent[];
-  users: AdminUser[];
-  registrations: Registration[];
+  data: OverviewData;
+  /** First name of the signed-in user. */
+  name: string;
   onNavigateTab: (tab: DashboardTab) => void;
   onCreateEvent: () => void;
 }
 
+const TIME = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" });
+
 export default function AdminOverviewView({
-  events,
-  users,
-  registrations,
+  data,
+  name,
   onNavigateTab,
   onCreateEvent,
 }: AdminOverviewViewProps) {
-  const handleNavigate = onNavigateTab;
-
-  const activeEventsCount = events.filter((e) => e.status === "Active" || e.status === "Upcoming").length;
-  const activeRegistrations = registrations.filter((r) => !r.deleted);
-  const checkedIn = activeRegistrations.filter((r) => r.attended);
-  const checkedInCount = checkedIn.length;
+  const { events, members, attendance, recentCheckIns, mail } = data;
+  const focus = events.focus;
   const checkInRate = Math.round(
-    (checkedInCount / (activeRegistrations.length || 1)) * 100
+    (attendance.checkedIn / (attendance.registered || 1)) * 100
   );
+  const focusPercent =
+    focus && focus.capacity > 0
+      ? Math.min(100, Math.round((focus.registeredCount / focus.capacity) * 100))
+      : 0;
 
   return (
     <StaggerList className="space-y-8">
@@ -51,10 +47,10 @@ export default function AdminOverviewView({
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Welcome back, Superadmin.
+              Welcome back, {name}.
             </h2>
             <p className="text-xs sm:text-sm text-neutral-400 mt-1 max-w-xl leading-relaxed">
-              Managing PTSC operations, event check-in passes, student builders registry, and campus broadcast queues.
+              Manage PTSC events, registrations, attendance and member requests from one place.
             </p>
           </div>
 
@@ -70,7 +66,7 @@ export default function AdminOverviewView({
 
             <button
               type="button"
-              onClick={() => handleNavigate("attendance")}
+              onClick={() => onNavigateTab("attendance")}
               className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-medium transition-all cursor-pointer"
             >
               Open Check-in Desk
@@ -82,7 +78,7 @@ export default function AdminOverviewView({
       {/* 2. Primary KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div
-          onClick={() => handleNavigate("events")}
+          onClick={() => onNavigateTab("events")}
           className="p-5 rounded-2xl bg-[#111113] border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-neutral-400 text-xs mb-3">
@@ -92,57 +88,63 @@ export default function AdminOverviewView({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{events.length}</p>
-            <span className="text-[11px] text-emerald-400 font-mono">({activeEventsCount} Active)</span>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{events.total}</p>
+            <span className="text-[11px] text-emerald-400 font-mono">({events.open} open)</span>
           </div>
           <p className="text-[11px] text-neutral-400 mt-2 flex items-center justify-between">
-            <span>Next: HackFest &apos;26</span>
-            <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
+            <span className="truncate">
+              {focus ? `Next: ${focus.title}` : "No events yet"}
+            </span>
+            <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors shrink-0" />
           </p>
         </div>
 
         <div
-          onClick={() => handleNavigate("users")}
+          onClick={() => onNavigateTab("users")}
           className="p-5 rounded-2xl bg-[#111113] border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-neutral-400 text-xs mb-3">
-            <span>Manage Users</span>
+            <span>Members</span>
             <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{users.length}</p>
-            <span className="text-[11px] text-blue-400 font-mono">Core &amp; Builders</span>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{members.approved}</p>
+            <span className="text-[11px] text-blue-400 font-mono">approved</span>
           </div>
           <p className="text-[11px] text-neutral-400 mt-2 flex items-center justify-between">
-            <span>Active Campus Members</span>
+            <span>
+              {members.pending > 0
+                ? `${members.pending} awaiting approval`
+                : "No pending requests"}
+            </span>
             <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
           </p>
         </div>
 
         <div
-          onClick={() => handleNavigate("attendance")}
+          onClick={() => onNavigateTab("attendance")}
           className="p-5 rounded-2xl bg-[#111113] border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-neutral-400 text-xs mb-3">
-            <span>Live Attendance</span>
+            <span>Attendance</span>
             <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
               <QrCode className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{checkedInCount}</p>
-            <span className="text-[11px] text-purple-400 font-mono">/ {activeRegistrations.length} Registered</span>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{attendance.checkedIn}</p>
+            <span className="text-[11px] text-purple-400 font-mono">/ {attendance.registered} registered</span>
           </div>
           <p className="text-[11px] text-neutral-400 mt-2 flex items-center justify-between">
-            <span>{checkInRate}% Check-in Rate</span>
+            <span>{checkInRate}% check-in rate, all events</span>
             <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
           </p>
         </div>
 
         <div
-          onClick={() => handleNavigate("mails")}
+          onClick={() => onNavigateTab("mails")}
           className="p-5 rounded-2xl bg-[#111113] border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between text-neutral-400 text-xs mb-3">
@@ -152,28 +154,36 @@ export default function AdminOverviewView({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">4</p>
-            <span className="text-[11px] text-amber-400 font-mono">Campaigns</span>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-white">{mail.sent}</p>
+            <span className="text-[11px] text-amber-400 font-mono">mails sent</span>
           </div>
           <p className="text-[11px] text-neutral-400 mt-2 flex items-center justify-between">
-            <span>94.2% Avg Open Rate</span>
+            <span className={mail.failed > 0 ? "text-red-400" : undefined}>
+              {mail.failed} failed
+              {mail.pending > 0 ? ` · ${mail.pending} pending` : ""}
+            </span>
             <ArrowUpRight className="w-3 h-3 text-neutral-500 group-hover:text-white transition-colors" />
           </p>
         </div>
       </div>
 
-      {/* 3. Split: Active Event Focus & Live Check-in Feed */}
+      {/* 3. Split: Event Focus & Recent Check-ins */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Active Event Spotlight (7 cols) */}
         <div className="lg:col-span-7 p-6 rounded-2xl bg-[#111113] border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <h3 className="text-sm font-bold text-white tracking-tight">Active Campus Event</h3>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  focus?.status === "Active" ? "bg-emerald-400 animate-pulse" : "bg-neutral-500"
+                }`}
+              />
+              <h3 className="text-sm font-bold text-white tracking-tight">
+                {focus?.status === "Active" ? "Happening Today" : "Next Event"}
+              </h3>
             </div>
             <button
               type="button"
-              onClick={() => handleNavigate("events")}
+              onClick={() => onNavigateTab("events")}
               className="text-xs text-neutral-400 hover:text-white flex items-center gap-1 cursor-pointer"
             >
               <span>All Events</span>
@@ -181,52 +191,56 @@ export default function AdminOverviewView({
             </button>
           </div>
 
-          <div className="p-5 rounded-xl bg-white/[0.02] border border-white/[0.08]">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
-                {events[0]?.status}
-              </span>
-              <span className="text-xs text-neutral-400 font-mono">
-                {events[0]?.date.month} {events[0]?.date.day}, {events[0]?.date.year}
-              </span>
-            </div>
+          {focus ? (
+            <div className="p-5 rounded-xl bg-white/[0.02] border border-white/[0.08]">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
+                  {focus.status}
+                </span>
+                <span className="text-xs text-neutral-400 font-mono">
+                  {focus.date.month} {focus.date.day}, {focus.date.year}
+                </span>
+              </div>
 
-            <h4 className="text-lg font-bold text-white mt-2">
-              {events[0]?.title}
-            </h4>
-            <p className="text-xs text-neutral-400 mt-1">
-              {events[0]?.venue} • {events[0]?.time}
+              <h4 className="text-lg font-bold text-white mt-2">{focus.title}</h4>
+              <p className="text-xs text-neutral-400 mt-1">
+                {focus.venue || "Venue to be announced"} • {focus.time || "Time to be announced"}
+              </p>
+
+              <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[11px] text-neutral-400">Total Registered</p>
+                  <p className="text-base font-bold text-white font-mono">
+                    {focus.registeredCount}
+                    {focus.capacity > 0 ? ` / ${focus.capacity} Seats` : " · no limit"}
+                  </p>
+                </div>
+
+                {focus.capacity > 0 && (
+                  <div className="w-32 bg-white/10 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-400 h-full rounded-full"
+                      style={{ width: `${focusPercent}%` }}
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab("attendance")}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
+                >
+                  Launch Check-in
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-neutral-500 py-8 text-center">
+              No events yet. Create one to get started.
             </p>
-
-            <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between">
-              <div>
-                <p className="text-[11px] text-neutral-400">Total Registered</p>
-                <p className="text-base font-bold text-white font-mono">
-                  {events[0]?.registeredCount} / {events[0]?.capacity} Seats
-                </p>
-              </div>
-
-              <div className="w-32 bg-white/10 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-emerald-400 h-full rounded-full"
-                  style={{
-                    width: `${Math.round(((events[0]?.registeredCount || 0) / (events[0]?.capacity || 1)) * 100)}%`,
-                  }}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleNavigate("attendance")}
-                className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium text-white transition-colors cursor-pointer"
-              >
-                Launch Check-in
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Recent Attendance Stream (5 cols) */}
         <div className="lg:col-span-5 p-6 rounded-2xl bg-[#111113] border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
@@ -235,7 +249,7 @@ export default function AdminOverviewView({
             </h3>
             <button
               type="button"
-              onClick={() => handleNavigate("attendance")}
+              onClick={() => onNavigateTab("attendance")}
               className="text-xs text-emerald-400 hover:underline cursor-pointer"
             >
               Live Desk
@@ -243,34 +257,37 @@ export default function AdminOverviewView({
           </div>
 
           <div className="space-y-2.5">
-            {checkedIn.length === 0 && (
+            {recentCheckIns.length === 0 && (
               <p className="text-xs text-neutral-500 py-4 text-center">
                 No one has been checked in yet.
               </p>
             )}
-            {checkedIn.slice(0, 4).map((record) => (
+            {recentCheckIns.map((record) => (
               <div
                 key={record.id}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs"
+                className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-7 h-7 shrink-0 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
                     ✓
                   </div>
-                  <div>
-                    <p className="font-semibold text-white">
-                      {record.teamName ?? record.name}
-                    </p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-white truncate">{record.name}</p>
                     <p className="text-[10px] text-neutral-500 font-mono">
-                      {formatRegistrationId(record, events)}
+                      {record.registrationId}
                     </p>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <span className="font-mono text-[11px] text-neutral-400 truncate max-w-[10rem] inline-block">
-                    {events.find((e) => e.id === record.eventId)?.title}
-                  </span>
+                <div className="text-right min-w-0">
+                  <p className="font-mono text-[11px] text-neutral-400 truncate max-w-[10rem]">
+                    {record.eventTitle}
+                  </p>
+                  {record.attendedAt && (
+                    <p className="text-[10px] text-neutral-500">
+                      {TIME.format(new Date(record.attendedAt))}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
