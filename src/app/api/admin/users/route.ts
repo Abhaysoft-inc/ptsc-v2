@@ -2,7 +2,7 @@ import { NextResponse, connection, type NextRequest } from "next/server";
 import type { QueryFilter } from "mongoose";
 import { connectDB } from "@/lib/db";
 import { requireAdmin, serverError } from "@/lib/auth/require-admin";
-import { escapeRegex, noStore, pageSizeFrom, paginate, searchText } from "@/lib/server/query";
+import { escapeRegex, noStore, pageSizeFrom, pagedRows, searchText } from "@/lib/server/query";
 import type { AdminUser } from "@/lib/types/admin";
 import { User, type UserDoc } from "@/models/User";
 
@@ -42,28 +42,22 @@ export async function GET(request: NextRequest) {
     }
 
     await connectDB();
-    const [total, pendingCount] = await Promise.all([
-      User.countDocuments(filter),
+    // The count, the pending count and the page itself are asked for at the same
+    // time. A page past the end is clamped, so deleting the last user on the last
+    // page doesn't strand you on an empty one.
+    const [pendingCount, { paging, rows: docs }] = await Promise.all([
       User.countDocuments({ status: "pending" }),
+      pagedRows(params, pageSizeFrom(params), User.countDocuments(filter), (skip, limit) =>
+        User.find(filter, "firstName lastName email username mobile status role batch post")
+          // "pending" sorts after "approved"/"denied", so descending puts
+          // requests awaiting review first. _id keeps paging stable on ties.
+          .sort({ status: -1, firstName: 1, lastName: 1, _id: 1 })
+          .skip(skip)
+          .limit(limit)
+          .lean()
+      ),
     ]);
-    // Clamps the page so deleting the last user on the last page doesn't strand
-    // you on an empty one.
-    const { page, pageSize, totalPages, skip } = paginate(
-      params,
-      total,
-      pageSizeFrom(params)
-    );
-
-    const docs = await User.find(
-      filter,
-      "firstName lastName email username mobile status role batch post"
-    )
-      // "pending" sorts after "approved"/"denied", so descending puts
-      // requests awaiting review first. _id keeps paging stable on ties.
-      .sort({ status: -1, firstName: 1, lastName: 1, _id: 1 })
-      .skip(skip)
-      .limit(pageSize)
-      .lean();
+    const { page, pageSize, total, totalPages } = paging;
 
     const users: AdminUser[] = docs.map((u) => ({
       id: u._id.toString(),

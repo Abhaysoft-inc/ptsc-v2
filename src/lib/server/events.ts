@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import type { Types } from "mongoose";
+import type { PipelineStage, Types } from "mongoose";
 import { Event, type EventDoc } from "@/models/Event";
 import { EventRegistration } from "@/models/EventRegistration";
 import type {
@@ -34,8 +34,11 @@ export function dayParts(day: string): AdminEvent["date"] {
   return { month: MONTHS[Number(month) - 1] ?? "", day: dayOfMonth, year };
 }
 
+/** The fields that decide an event's status and whether registration is open. */
+type EventTimeFields = { published?: boolean | null; completed?: boolean | null; date: Date };
+
 export function deriveStatus(
-  e: Pick<EventDoc, "published" | "completed" | "date">,
+  e: EventTimeFields,
   now = new Date()
 ): AdminEvent["status"] {
   if (e.published === false) return "Draft";
@@ -51,7 +54,7 @@ export function deriveStatus(
  * closed it at the start of the day itself.)
  */
 export function registrationOpen(
-  e: Pick<EventDoc, "published" | "completed" | "date">,
+  e: EventTimeFields,
   now = new Date()
 ) {
   if (e.published === false || e.completed) return false;
@@ -256,6 +259,118 @@ export function toAdminEvent(e: EventRecord, counts?: EventCounts, now = new Dat
       fields: (e.registrationFields ?? []).map((f, i) => toFormField(f, i, "f")),
       participantFields: (e.participantFields ?? []).map((f, i) => toFormField(f, i, "p")),
     },
+  };
+}
+
+// ---------------------------------------------------------- list queries ----
+// The Events tab and the public events list ask the database for one page at a
+// time, with the registration counts joined in the same query, and only the
+// fields a card needs. (The full event, with its form questions, is loaded one
+// at a time when you open it.)
+
+export const EVENT_STATUSES = ["Active", "Upcoming", "Completed", "Draft"] as const;
+export type EventStatus = (typeof EVENT_STATUSES)[number];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** midnight UTC of today's calendar day in India: what an event's `date` is compared against. */
+export function todayStart(now = new Date()) {
+  return new Date(`${todayIST(now)}T00:00:00.000Z`);
+}
+
+/** The database condition equivalent to deriveStatus() returning this status. */
+export function statusCondition(status: EventStatus, now = new Date()) {
+  const today = todayStart(now);
+  const tomorrow = new Date(today.getTime() + DAY_MS);
+  const live = { published: { $ne: false }, completed: { $ne: true } };
+  switch (status) {
+    case "Draft":
+      return { published: false };
+    case "Completed":
+      return { published: { $ne: false }, $or: [{ completed: true }, { date: { $lt: today } }] };
+    case "Active":
+      return { ...live, date: { $gte: today, $lt: tomorrow } };
+    case "Upcoming":
+      return { ...live, date: { $gte: tomorrow } };
+  }
+}
+
+/** Counts of live registrations per event, joined in the same query (needs MongoDB 5+). */
+const countsLookup = {
+  $lookup: {
+    from: "eventregistrations",
+    localField: "_id",
+    foreignField: "eventId",
+    pipeline: [
+      { $match: { deleted: { $ne: true } } },
+      { $group: { _id: null, registered: { $sum: 1 }, attended: { $sum: { $cond: ["$attended", 1, 0] } } } },
+    ],
+    as: "counts",
+  },
+};
+
+export interface EventListRow {
+  _id: Types.ObjectId;
+  title: string;
+  date: Date;
+  time?: string;
+  venue?: string;
+  category?: string;
+  capacity?: number;
+  published?: boolean;
+  completed?: boolean;
+  coverImageUrl?: string;
+  description: string;
+  counts: { registered: number; attended: number }[];
+}
+
+/** One page of events for the dashboard: newest first, trimmed to what a card shows. */
+export function adminListPipeline(
+  match: Record<string, unknown>,
+  skip: number,
+  limit: number
+): PipelineStage[] {
+  return [
+    { $match: match },
+    { $sort: { date: -1, _id: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    countsLookup as PipelineStage,
+    {
+      $project: {
+        title: 1,
+        date: 1,
+        time: 1,
+        venue: 1,
+        category: 1,
+        capacity: 1,
+        published: 1,
+        completed: 1,
+        coverImageUrl: 1,
+        // Cards show two lines; no need to send up to 5,000 characters each.
+        description: { $substrCP: ["$description", 0, 300] },
+        counts: 1,
+      },
+    },
+  ];
+}
+
+/** A list row as the dashboard shows it. The form questions are left out. */
+export function toAdminEventListItem(row: EventListRow, now = new Date()): AdminEvent {
+  return {
+    id: row._id.toString(),
+    title: row.title,
+    date: dayParts(eventDay(row.date)),
+    time: row.time ?? "",
+    venue: row.venue ?? "",
+    category: row.category ?? "",
+    status: deriveStatus(row, now),
+    capacity: row.capacity ?? 0,
+    registeredCount: row.counts[0]?.registered ?? 0,
+    attendedCount: row.counts[0]?.attended ?? 0,
+    description: row.description,
+    published: row.published !== false,
+    coverImageUrl: row.coverImageUrl || undefined,
   };
 }
 

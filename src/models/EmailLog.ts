@@ -36,6 +36,8 @@ const emailLogSchema = new Schema({
 });
 
 emailLogSchema.index({ eventId: 1, emailType: 1, status: 1 });
+// The mail list shows one event's logs, newest first, a page at a time.
+emailLogSchema.index({ eventId: 1, createdAt: -1 });
 
 export type EmailLogDoc = mongoose.InferSchemaType<typeof emailLogSchema>;
 

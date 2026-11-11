@@ -8,6 +8,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  Search,
   Star,
   Trash2,
   Upload,
@@ -15,7 +16,8 @@ import {
 } from "lucide-react";
 import { errorMessage } from "@/lib/api-client";
 import { MAX_IMAGE_MB, uploadImage } from "@/lib/upload-client";
-import type { AdminProject, ProjectInput, ProjectStatus } from "@/lib/types/admin";
+import type { AdminProject, PageInfo, ProjectInput, ProjectStatus } from "@/lib/types/admin";
+import Pagination from "@/components/dashboard/Pagination";
 import { CheckRow, Field, describe, inputClass } from "@/components/dashboard/event-form/FormParts";
 import { isLink } from "@/components/dashboard/event-form/formModel";
 import { EmptyBlock } from "@/components/dashboard/ListStates";
@@ -28,7 +30,14 @@ export const STATUS_LABEL: Record<ProjectStatus, string> = {
 };
 
 interface AdminProjectsViewProps {
+  /** One page of projects. Search and paging are done by the server. */
   projects: AdminProject[];
+  search: string;
+  onSearchChange: (value: string) => void;
+  pageInfo: PageInfo;
+  onPageChange: (page: number) => void;
+  /** A newer answer is on its way (the current page stays visible meanwhile). */
+  loading: boolean;
   /** Only admins can delete. */
   canDelete: boolean;
   /** Saves a new project, or the edited one when `id` is given. Resolves to an error message, or null on success. */
@@ -376,6 +385,11 @@ function Thumb({ project }: { project: AdminProject }) {
 
 export default function AdminProjectsView({
   projects,
+  search,
+  onSearchChange,
+  pageInfo,
+  onPageChange,
+  loading,
   canDelete,
   onSave,
   onDelete,
@@ -386,9 +400,17 @@ export default function AdminProjectsView({
   return (
     <StaggerList className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <p className="text-xs text-neutral-400">
-          {projects.length} {projects.length === 1 ? "project" : "projects"}
-        </p>
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search projects by title, description or technology..."
+            aria-label="Search projects"
+            className="w-full pl-10 pr-4 py-2 bg-[#121215] border border-white/10 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
+          />
+        </div>
         <button
           type="button"
           onClick={() => setEditing("new")}
@@ -399,16 +421,25 @@ export default function AdminProjectsView({
         </button>
       </div>
 
-      {projects.length === 0 ? (
+      {projects.length === 0 && !loading ? (
         <div className="rounded-2xl border border-white/10 bg-[#111113]">
           <EmptyBlock
             icon={FolderGit2}
-            title="No projects yet"
-            hint="Add the first one and it will appear on the public Projects page."
+            title={search ? "No projects match" : "No projects yet"}
+            hint={
+              search
+                ? "Try a different search."
+                : "Add the first one and it will appear on the public Projects page."
+            }
           />
         </div>
       ) : (
-        <ul className="divide-y divide-white/6 border-y border-white/8">
+        <ul
+          aria-busy={loading}
+          className={`divide-y divide-white/6 border-y border-white/8 transition-opacity ${
+            loading ? "opacity-60" : ""
+          }`}
+        >
           {projects.map((p) => (
             <li key={p.id} className="flex items-center gap-4 py-4">
               <Thumb project={p} />
@@ -472,6 +503,8 @@ export default function AdminProjectsView({
           ))}
         </ul>
       )}
+
+      <Pagination info={pageInfo} onPageChange={onPageChange} loading={loading} noun={["project", "projects"]} />
 
       {editing && (
         <ProjectForm

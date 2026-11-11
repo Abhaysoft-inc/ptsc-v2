@@ -14,12 +14,23 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import EventCard from "@/components/EventCard";
 import { getHeroFeaturedEvent } from "@/lib/events";
-import { getPublicEventsSafe } from "@/lib/server/public-events";
+import { getPublicEventCardsSafe } from "@/lib/server/public-events";
 import Reveal from "@/components/motion/Reveal";
 
-async function EventsContent() {
-  const eventsList = await getPublicEventsSafe();
-  const heroData = getHeroFeaturedEvent(eventsList);
+const PAGE_SIZE = 12;
+
+async function EventsContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const requested = Number((await searchParams).page);
+  const { events: eventsList, page, totalPages, total } = await getPublicEventCardsSafe(
+    Number.isInteger(requested) && requested > 0 ? requested : 1,
+    PAGE_SIZE
+  );
+  // The spotlight is the first event overall, so it only belongs on the first page.
+  const heroData = page === 1 ? getHeroFeaturedEvent(eventsList) : null;
   const featuredEvent = heroData?.event;
   const isUpcoming = heroData?.isUpcoming ?? true;
 
@@ -149,7 +160,7 @@ async function EventsContent() {
             <div className="text-xs text-neutral-400 flex items-center gap-2 shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span>
-                {eventsList.length} {eventsList.length === 1 ? "Event" : "Events"}
+                {total} {total === 1 ? "Event" : "Events"}
               </span>
             </div>
           </div>
@@ -168,6 +179,41 @@ async function EventsContent() {
               No events are scheduled right now. Check back soon.
             </p>
           )}
+
+          {totalPages > 1 && (
+            <nav
+              aria-label="Pages"
+              className="mt-14 flex items-center justify-center gap-4 text-sm"
+            >
+              {page > 1 ? (
+                <Link
+                  href={page === 2 ? "/events" : `/events?page=${page - 1}`}
+                  className="rounded-full border border-white/15 px-5 py-2 text-white transition-colors hover:bg-white/10"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="rounded-full border border-white/8 px-5 py-2 text-neutral-600">
+                  Previous
+                </span>
+              )}
+              <span className="font-mono text-xs text-neutral-400">
+                {page} / {totalPages}
+              </span>
+              {page < totalPages ? (
+                <Link
+                  href={`/events?page=${page + 1}`}
+                  className="rounded-full border border-white/15 px-5 py-2 text-white transition-colors hover:bg-white/10"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="rounded-full border border-white/8 px-5 py-2 text-neutral-600">
+                  Next
+                </span>
+              )}
+            </nav>
+          )}
         </div>
       </section>
 
@@ -177,7 +223,11 @@ async function EventsContent() {
   );
 }
 
-export default function EventsPage() {
+export default function EventsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   return (
     <Suspense
       fallback={
@@ -186,7 +236,7 @@ export default function EventsPage() {
         </div>
       }
     >
-      <EventsContent />
+      <EventsContent searchParams={searchParams} />
     </Suspense>
   );
 }

@@ -2,15 +2,24 @@ import { NextResponse, connection } from "next/server";
 import { connectDB } from "@/lib/db";
 import { requireStaff, serverError } from "@/lib/auth/require-admin";
 import { noStore } from "@/lib/server/query";
-import { eventDay, countsByEvent, toAdminEvent, todayIST } from "@/lib/server/events";
+import {
+  adminListPipeline,
+  toAdminEventListItem,
+  todayStart,
+  type EventListRow,
+} from "@/lib/server/events";
 import { toRegistrationRow } from "@/lib/server/registrations";
 import type { OverviewData } from "@/lib/types/admin";
 import { EmailLog } from "@/models/EmailLog";
 import { Event } from "@/models/Event";
-import { EventRegistration } from "@/models/EventRegistration";
+import { EventRegistration, type EventRegistrationDoc } from "@/models/EventRegistration";
 import { User } from "@/models/User";
 
 // GET /api/admin/overview — the numbers on the dashboard's Overview tab.
+//
+// Everything that doesn't depend on anything else is asked for at the same time,
+// then the spotlight event is loaded, so this takes two trips to the database
+// rather than a long chain of them.
 export async function GET() {
   await connection();
 
@@ -20,36 +29,59 @@ export async function GET() {
 
     await connectDB();
     const active = { deleted: { $ne: true } };
+    const live = { published: { $ne: false } };
+    const today = todayStart();
 
-    const [events, registered, checkedIn, recent, approved, pending, mailRows] =
-      await Promise.all([
-        Event.find({}).sort({ date: -1 }).lean(),
-        EventRegistration.countDocuments(active),
-        EventRegistration.countDocuments({ ...active, attended: true }),
-        EventRegistration.find({ ...active, attended: true })
-          .sort({ attendedAt: -1 })
-          .limit(4)
-          .lean(),
-        User.countDocuments({ status: "approved" }),
-        User.countDocuments({ status: "pending" }),
-        EmailLog.aggregate<{ _id: string; count: number }>([
-          { $group: { _id: "$status", count: { $sum: 1 } } },
-        ]),
-      ]);
+    const [
+      soonest,
+      latestLive,
+      latestAny,
+      eventTotal,
+      eventsOpen,
+      registered,
+      checkedIn,
+      recent,
+      approved,
+      pending,
+      mailRows,
+    ] = await Promise.all([
+      // Spotlight: today's event, else the soonest one still ahead...
+      Event.findOne({ ...live, date: { $gte: today } }, "_id").sort({ date: 1 }).lean(),
+      // ...else the latest one that has passed...
+      Event.findOne(live, "_id").sort({ date: -1 }).lean(),
+      // ...and if nothing is published, the latest of any.
+      Event.findOne({}, "_id").sort({ date: -1 }).lean(),
+      Event.estimatedDocumentCount(),
+      Event.countDocuments({ ...live, date: { $gte: today } }),
+      EventRegistration.countDocuments(active),
+      EventRegistration.countDocuments({ ...active, attended: true }),
+      // The latest check-ins, with each event's title joined in the same query.
+      EventRegistration.aggregate<EventRegistrationDoc & { _id: never; event: { title: string }[] }>([
+        { $match: { ...active, attended: true } },
+        { $sort: { attendedAt: -1 } },
+        { $limit: 4 },
+        {
+          $lookup: {
+            from: "events",
+            localField: "eventId",
+            foreignField: "_id",
+            pipeline: [{ $project: { title: 1 } }],
+            as: "event",
+          },
+        },
+      ]),
+      User.countDocuments({ status: "approved" }),
+      User.countDocuments({ status: "pending" }),
+      EmailLog.aggregate<{ _id: string; count: number }>([
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+    ]);
 
-    // Events are newest first. Spotlight today's event, else the soonest one
-    // still ahead, else the latest one that has passed.
-    const today = todayIST();
-    const published = events.filter((e) => e.published !== false);
-    const pool = published.length ? published : events;
-    const ahead = pool.filter((e) => eventDay(e.date) >= today);
-    const focusDoc =
-      pool.find((e) => eventDay(e.date) === today) ??
-      ahead[ahead.length - 1] ?? // list is newest first, so the last is soonest
-      pool[0];
+    const focusId = (soonest ?? latestLive ?? latestAny)?._id;
+    const [focusRow] = focusId
+      ? await Event.aggregate<EventListRow>(adminListPipeline({ _id: focusId }, 0, 1))
+      : [];
 
-    const counts = focusDoc ? await countsByEvent([focusDoc._id]) : new Map();
-    const titles = new Map(events.map((e) => [e._id.toString(), e.title]));
     const mail = { sent: 0, failed: 0, pending: 0 };
     for (const row of mailRows) {
       if (row._id === "sent" || row._id === "failed" || row._id === "pending") {
@@ -59,9 +91,9 @@ export async function GET() {
 
     const data: OverviewData = {
       events: {
-        total: events.length,
-        open: pool.filter((e) => eventDay(e.date) >= today).length,
-        focus: focusDoc ? toAdminEvent(focusDoc, counts.get(focusDoc._id.toString())) : null,
+        total: eventTotal,
+        open: eventsOpen,
+        focus: focusRow ? toAdminEventListItem(focusRow) : null,
       },
       members: { approved, pending },
       attendance: { registered, checkedIn },
@@ -71,7 +103,7 @@ export async function GET() {
           id: row.id,
           name: row.teamName ?? row.lead.name,
           registrationId: row.registrationId,
-          eventTitle: titles.get(r.eventId.toString()) ?? "",
+          eventTitle: r.event[0]?.title ?? "",
           attendedAt: row.attendedAt,
         };
       }),

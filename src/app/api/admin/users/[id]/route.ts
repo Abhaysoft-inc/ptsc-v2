@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { connectDB } from "@/lib/db";
 import { requireAdmin, serverError } from "@/lib/auth/require-admin";
+import { forgetCachedUser } from "@/lib/auth/user";
 import { badRequest, isObjectId, notFound, parseBody } from "@/lib/server/query";
 import { TEAM_TAG } from "@/lib/server/public-team";
 import { USER_POSTS, USER_ROLES, User } from "@/models/User";
@@ -39,6 +40,7 @@ export async function PATCH(request: Request, { params }: Context) {
         { $set: { status: "approved" } }
       );
       if (result.matchedCount === 0) return notFound("No pending request for this user.");
+      forgetCachedUser(id);
       revalidateTag(TEAM_TAG, { expire: 0 }); // the public Team page lists approved members
       return NextResponse.json({ success: true, message: "User approved." });
     }
@@ -58,6 +60,7 @@ export async function PATCH(request: Request, { params }: Context) {
     });
     if (result.matchedCount === 0) return notFound("User not found.");
 
+    forgetCachedUser(id); // a demoted admin loses access at once on this instance
     revalidateTag(TEAM_TAG, { expire: 0 }); // role, batch and post show on the Team page
     return NextResponse.json({ success: true, message: "User updated." });
   } catch (error) {
@@ -81,6 +84,7 @@ export async function DELETE(_request: Request, { params }: Context) {
     const result = await User.deleteOne({ _id: id });
     if (result.deletedCount === 0) return notFound("User not found.");
 
+    forgetCachedUser(id);
     revalidateTag(TEAM_TAG, { expire: 0 });
     return NextResponse.json({ success: true, message: "User deleted." });
   } catch (error) {

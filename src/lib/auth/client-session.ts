@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { clearApiCache } from "@/lib/use-api";
 import type { SessionUser } from "./types";
 
 // Who is signed in, as far as the browser knows. Pages like the home page are
@@ -23,6 +24,8 @@ function subscribe(listener: () => void) {
 
 /** Records the signed-in user (or null after signing out) and updates every navbar. */
 export function setSessionUser(user: SessionUser | null) {
+  // Cached dashboard data belongs to whoever was signed in before.
+  if (user?.id !== current?.id) clearApiCache();
   current = user;
   listeners.forEach((listener) => listener());
 }

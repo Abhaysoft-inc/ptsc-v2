@@ -21,8 +21,8 @@ export function searchText(params: URLSearchParams) {
   return (params.get("q") ?? "").trim().slice(0, 100);
 }
 
-export function pageSizeFrom(params: URLSearchParams) {
-  return positiveInt(params.get("pageSize"), DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+export function pageSizeFrom(params: URLSearchParams, fallback = DEFAULT_PAGE_SIZE) {
+  return positiveInt(params.get("pageSize"), fallback, MAX_PAGE_SIZE);
 }
 
 /**
@@ -33,6 +33,27 @@ export function paginate(params: URLSearchParams, total: number, pageSize: numbe
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(positiveInt(params.get("page"), 1), totalPages);
   return { page, pageSize, total, totalPages, skip: (page - 1) * pageSize };
+}
+
+/**
+ * Fetches one page of rows at the same time as the total count, so a list costs
+ * one database round trip instead of two in a row. If the requested page is past
+ * the end (say, the last row on the last page was just deleted), the page is
+ * clamped and the rows are fetched again. That's the rare case.
+ */
+export async function pagedRows<T>(
+  params: URLSearchParams,
+  pageSize: number,
+  count: Promise<number>,
+  fetchRows: (skip: number, limit: number) => Promise<T[]>
+) {
+  const requested = positiveInt(params.get("page"), 1);
+  const [total, rows] = await Promise.all([count, fetchRows((requested - 1) * pageSize, pageSize)]);
+  const paging = paginate(params, total, pageSize);
+  if (paging.page !== requested) {
+    return { paging, rows: await fetchRows(paging.skip, pageSize) };
+  }
+  return { paging, rows };
 }
 
 export function notFound(message = "Not found.") {

@@ -40,22 +40,41 @@ function ProjectImage({ project }: { project: AdminProject }) {
   );
 }
 
-export default function ProjectsClient({ projects }: { projects: AdminProject[] }) {
-  const [tag, setTag] = useState<string | null>(null);
+const CHIP =
+  "rounded-full border px-3.5 py-1.5 font-mono text-xs transition-colors";
+const CHIP_ON = "border-white bg-white text-black";
+const CHIP_OFF = "border-white/10 text-neutral-400 hover:border-white/30 hover:text-white";
 
-  // Technologies used by at least one project, most common first.
-  const counts = new Map<string, { label: string; n: number }>();
-  for (const p of projects) {
-    for (const t of p.tags) {
-      const key = t.toLowerCase();
-      counts.set(key, { label: counts.get(key)?.label ?? t, n: (counts.get(key)?.n ?? 0) + 1 });
-    }
-  }
-  const tags = [...counts.entries()].sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]));
+/** A link to /projects keeping the chosen technology. */
+function projectsHref(tag: string, page: number) {
+  const query = new URLSearchParams();
+  if (tag) query.set("tag", tag);
+  if (page > 1) query.set("page", String(page));
+  const text = query.toString();
+  return text ? `/projects?${text}` : "/projects";
+}
 
-  const shown = tag ? projects.filter((p) => p.tags.some((t) => t.toLowerCase() === tag)) : projects;
+interface ProjectsClientProps {
+  /** One page of projects, already filtered by the server. */
+  projects: AdminProject[];
+  page: number;
+  totalPages: number;
+  total: number;
+  tags: { label: string; count: number }[];
+  /** The technology being filtered on, lower-case, or "". */
+  activeTag: string;
+}
 
-  if (projects.length === 0) {
+export default function ProjectsClient({
+  projects,
+  page,
+  totalPages,
+  tags,
+  activeTag,
+}: ProjectsClientProps) {
+  const shown = projects;
+
+  if (projects.length === 0 && !activeTag) {
     return (
       <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-white/15 px-6 py-16 text-center">
         <p className="font-mono text-sm text-neutral-500">{"> no projects yet"}</p>
@@ -72,36 +91,35 @@ export default function ProjectsClient({ projects }: { projects: AdminProject[] 
 
   return (
     <div>
-      {tags.length > 1 && (
-        <div className="mb-10 flex flex-wrap items-center gap-2" role="group" aria-label="Filter by technology">
-          <button
-            type="button"
-            onClick={() => setTag(null)}
-            aria-pressed={tag === null}
-            className={`rounded-full border px-3.5 py-1.5 font-mono text-xs transition-colors cursor-pointer ${
-              tag === null
-                ? "border-white bg-white text-black"
-                : "border-white/10 text-neutral-400 hover:border-white/30 hover:text-white"
-            }`}
+      {(tags.length > 1 || activeTag) && (
+        <nav className="mb-10 flex flex-wrap items-center gap-2" aria-label="Filter by technology">
+          <Link
+            href="/projects"
+            aria-current={activeTag === "" ? "page" : undefined}
+            className={`${CHIP} ${activeTag === "" ? CHIP_ON : CHIP_OFF}`}
           >
             all
-          </button>
-          {tags.map(([key, { label }]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTag(tag === key ? null : key)}
-              aria-pressed={tag === key}
-              className={`rounded-full border px-3.5 py-1.5 font-mono text-xs transition-colors cursor-pointer ${
-                tag === key
-                  ? "border-white bg-white text-black"
-                  : "border-white/10 text-neutral-400 hover:border-white/30 hover:text-white"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+          </Link>
+          {tags.map(({ label }) => {
+            const on = label.toLowerCase() === activeTag;
+            return (
+              <Link
+                key={label}
+                href={on ? "/projects" : projectsHref(label.toLowerCase(), 1)}
+                aria-current={on ? "page" : undefined}
+                className={`${CHIP} ${on ? CHIP_ON : CHIP_OFF}`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
+      {shown.length === 0 && (
+        <p className="rounded-2xl border border-dashed border-white/15 px-6 py-12 text-center text-sm text-neutral-400">
+          No projects use that technology yet.
+        </p>
       )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -180,6 +198,34 @@ export default function ProjectsClient({ projects }: { projects: AdminProject[] 
           </Reveal>
         ))}
       </div>
+
+      {totalPages > 1 && (
+        <nav aria-label="Pages" className="mt-12 flex items-center justify-center gap-4 text-sm">
+          {page > 1 ? (
+            <Link
+              href={projectsHref(activeTag, page - 1)}
+              className="rounded-full border border-white/15 px-5 py-2 text-white transition-colors hover:bg-white/10"
+            >
+              Previous
+            </Link>
+          ) : (
+            <span className="rounded-full border border-white/8 px-5 py-2 text-neutral-600">Previous</span>
+          )}
+          <span className="font-mono text-xs text-neutral-400">
+            {page} / {totalPages}
+          </span>
+          {page < totalPages ? (
+            <Link
+              href={projectsHref(activeTag, page + 1)}
+              className="rounded-full border border-white/15 px-5 py-2 text-white transition-colors hover:bg-white/10"
+            >
+              Next
+            </Link>
+          ) : (
+            <span className="rounded-full border border-white/8 px-5 py-2 text-neutral-600">Next</span>
+          )}
+        </nav>
+      )}
 
       <div className="mt-14 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0d0d10] p-6 sm:p-8">
         <div>

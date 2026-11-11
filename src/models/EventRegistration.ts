@@ -54,6 +54,12 @@ const eventRegistrationSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// The registrations list shows one event's rows in sign-up order, a page at a time.
+// With this index the database walks straight to that event's rows already in order
+// and stops after the page, instead of sorting all of them first.
+// (_id is the tie-breaker the list sorts on too, so the whole sort comes from the index.)
+eventRegistrationSchema.index({ eventId: 1, createdAt: 1, _id: 1 });
+
 export type EventRegistrationDoc = mongoose.InferSchemaType<
   typeof eventRegistrationSchema
 >;

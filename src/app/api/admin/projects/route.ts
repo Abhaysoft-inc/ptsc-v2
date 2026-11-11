@@ -1,8 +1,15 @@
-import { NextResponse, connection } from "next/server";
+import { NextResponse, connection, type NextRequest } from "next/server";
 import { revalidateTag } from "next/cache";
 import { connectDB } from "@/lib/db";
 import { requireStaff, serverError } from "@/lib/auth/require-admin";
-import { noStore, parseBody } from "@/lib/server/query";
+import {
+  escapeRegex,
+  noStore,
+  pageSizeFrom,
+  pagedRows,
+  parseBody,
+  searchText,
+} from "@/lib/server/query";
 import {
   PROJECTS_TAG,
   inputToDoc,
@@ -11,8 +18,10 @@ import {
 } from "@/lib/server/projects";
 import { Project } from "@/models/Project";
 
-// GET /api/admin/projects — every project, featured first then newest.
-export async function GET() {
+// GET /api/admin/projects?page=1&pageSize=20&q=react
+// One page of projects, featured first then newest, with an optional search in the
+// title, description and technologies.
+export async function GET(request: NextRequest) {
   // Depends on the signed-in user, so never prerender. Must come before the
   // try/catch, which would otherwise swallow Next's prerender signal.
   await connection();
@@ -21,9 +30,31 @@ export async function GET() {
     const auth = await requireStaff();
     if ("response" in auth) return auth.response;
 
+    const params = request.nextUrl.searchParams;
+    const q = searchText(params);
+    const rx = { $regex: escapeRegex(q), $options: "i" };
+    const filter = q ? { $or: [{ title: rx }, { summary: rx }, { tags: rx }] } : {};
+
     await connectDB();
-    const docs = await Project.find({}).sort({ featured: -1, createdAt: -1 }).lean();
-    return NextResponse.json({ success: true, projects: docs.map(toAdminProject) }, noStore);
+    // The count and the page are asked for at the same time.
+    const { paging, rows } = await pagedRows(
+      params,
+      pageSizeFrom(params),
+      Project.countDocuments(filter),
+      (skip, limit) =>
+        Project.find(filter).sort({ featured: -1, createdAt: -1, _id: -1 }).skip(skip).limit(limit).lean()
+    );
+    return NextResponse.json(
+      {
+        success: true,
+        projects: rows.map(toAdminProject),
+        page: paging.page,
+        pageSize: paging.pageSize,
+        total: paging.total,
+        totalPages: paging.totalPages,
+      },
+      noStore
+    );
   } catch (error) {
     return serverError("Listing projects failed", error);
   }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   CalendarDays,
   Search,
@@ -11,14 +10,25 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
-import type { AdminEvent } from "@/lib/types/admin";
+import type { AdminEvent, PageInfo } from "@/lib/types/admin";
 import StaggerList from "@/components/motion/StaggerList";
 import PillTabs from "@/components/dashboard/PillTabs";
+import Pagination from "@/components/dashboard/Pagination";
 
-const EVENT_FILTERS = ["All", "Active", "Upcoming", "Completed", "Draft"] as const;
+export const EVENT_FILTERS = ["All", "Active", "Upcoming", "Completed", "Draft"] as const;
+export type EventFilter = (typeof EVENT_FILTERS)[number];
 
 interface AdminEventsViewProps {
+  /** One page of events. Search, filter and paging are done by the server. */
   events: AdminEvent[];
+  search: string;
+  onSearchChange: (value: string) => void;
+  filter: EventFilter;
+  onFilterChange: (filter: EventFilter) => void;
+  pageInfo: PageInfo;
+  onPageChange: (page: number) => void;
+  /** A newer answer is on its way (the current page stays visible meanwhile). */
+  loading: boolean;
   /** Admins and members can create, edit and check in; normal users can only browse. */
   canManage: boolean;
   /** Only admins can delete. */
@@ -31,6 +41,13 @@ interface AdminEventsViewProps {
 
 export default function AdminEventsView({
   events,
+  search,
+  onSearchChange,
+  filter,
+  onFilterChange,
+  pageInfo,
+  onPageChange,
+  loading,
   canManage,
   canDelete,
   onCreateEvent,
@@ -38,18 +55,7 @@ export default function AdminEventsView({
   onOpenAttendance,
   onDeleteEvent,
 }: AdminEventsViewProps) {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<(typeof EVENT_FILTERS)[number]>("All");
-
-  const filteredEvents = events.filter((evt) => {
-    const matchesSearch =
-      evt.title.toLowerCase().includes(search.toLowerCase()) ||
-      evt.venue.toLowerCase().includes(search.toLowerCase()) ||
-      evt.category.toLowerCase().includes(search.toLowerCase());
-
-    const matchesFilter = filter === "All" || evt.status === filter;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredEvents = events;
 
   return (
     <StaggerList className="space-y-6">
@@ -62,7 +68,7 @@ export default function AdminEventsView({
             type="text"
             placeholder="Search events by title, venue, or category..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-[#121215] border border-white/10 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white/30"
           />
         </div>
@@ -73,7 +79,7 @@ export default function AdminEventsView({
             label="Filter events by status"
             options={EVENT_FILTERS}
             value={filter}
-            onChange={setFilter}
+            onChange={onFilterChange}
           />
 
           {canManage && (
@@ -90,7 +96,12 @@ export default function AdminEventsView({
       </div>
 
       {/* Events Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div
+        aria-busy={loading}
+        className={`grid grid-cols-1 md:grid-cols-2 gap-5 transition-opacity ${
+          loading ? "opacity-60" : ""
+        }`}
+      >
         {filteredEvents.map((evt) => {
           // Capacity 0 means no limit, so there's no fill to show.
           const percentRegistered =
@@ -220,13 +231,15 @@ export default function AdminEventsView({
         })}
       </div>
 
-      {filteredEvents.length === 0 && (
+      {filteredEvents.length === 0 && !loading && (
         <div className="text-center py-16 bg-[#111113] rounded-2xl border border-white/10">
           <CalendarDays className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
           <p className="text-sm font-semibold text-white">No events match your criteria</p>
           <p className="text-xs text-neutral-400 mt-1">Try resetting the filter or search query.</p>
         </div>
       )}
+
+      <Pagination info={pageInfo} onPageChange={onPageChange} loading={loading} noun={["event", "events"]} />
     </StaggerList>
   );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import SitePage, { PageHeader, Section, SectionTitle } from "@/components/site/SitePage";
 import EventCard from "@/components/EventCard";
-import { getPublicEventsSafe } from "@/lib/server/public-events";
+import { getPublicEventCardsSafe } from "@/lib/server/public-events";
 
 export const metadata = {
   title: "What We Do | PTSC Club",
@@ -34,7 +34,8 @@ const TRACKS = [
 const FORMATS = ["Workshops", "Hackathons", "Demo days", "Sprints", "Talks", "Meetups"];
 
 async function UpcomingEvents() {
-  const events = (await getPublicEventsSafe()).filter((e) => e.status !== "past").slice(0, 3);
+  // Upcoming events come first, so the first page holds the next ones.
+  const events = (await getPublicEventCardsSafe(1, 3)).events.filter((e) => e.status !== "past");
 
   if (events.length === 0) {
     return (

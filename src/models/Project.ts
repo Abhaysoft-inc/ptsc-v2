@@ -25,6 +25,9 @@ const projectSchema = new Schema(
   { timestamps: true }
 );
 
+// Lists show featured projects first, then newest.
+projectSchema.index({ featured: -1, createdAt: -1 });
+
 export type ProjectDoc = mongoose.InferSchemaType<typeof projectSchema>;
 
 export const Project: mongoose.Model<ProjectDoc> =

@@ -8,7 +8,7 @@ import {
   noStore,
   notFound,
   pageSizeFrom,
-  paginate,
+  pagedRows,
   searchText,
 } from "@/lib/server/query";
 import type { MailLogRow, MailSummary } from "@/lib/types/admin";
@@ -41,20 +41,17 @@ export async function GET(request: NextRequest, { params }: Context) {
     }
 
     await connectDB();
-    const [total, grouped] = await Promise.all([
-      EmailLog.countDocuments(filter),
+    // Counts per type and status, the total, and the page are all asked for at
+    // the same time.
+    const [grouped, { paging, rows: docs }] = await Promise.all([
       EmailLog.aggregate<{ _id: { type: string; status: string }; n: number }>([
         { $match: { eventId: new mongoose.Types.ObjectId(id) } },
         { $group: { _id: { type: "$emailType", status: "$status" }, n: { $sum: 1 } } },
       ]),
+      pagedRows(search, pageSizeFrom(search), EmailLog.countDocuments(filter), (skip, limit) =>
+        EmailLog.find(filter).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit).lean()
+      ),
     ]);
-    const paging = paginate(search, total, pageSizeFrom(search));
-
-    const docs = await EmailLog.find(filter)
-      .sort({ createdAt: -1, _id: -1 })
-      .skip(paging.skip)
-      .limit(paging.pageSize)
-      .lean();
 
     const summary = Object.fromEntries(
       EMAIL_TYPES.map((t) => [t, { pending: 0, sent: 0, failed: 0, total: 0 }])

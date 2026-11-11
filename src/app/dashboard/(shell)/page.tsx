@@ -1,39 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminOverviewView from "@/components/dashboard/AdminOverviewView";
 import { getTabHref } from "@/components/dashboard/DashboardSidebar";
 import { ErrorBlock, LoadingBlock } from "@/components/dashboard/ListStates";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
-import { api, errorMessage } from "@/lib/api-client";
+import { useApi } from "@/lib/use-api";
 import type { OverviewData } from "@/lib/types/admin";
 
 export default function OverviewPage() {
   const router = useRouter();
   const { currentUser } = useAdminDashboard();
-  const [data, setData] = useState<OverviewData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Shows what it had last time straight away and refreshes in the background.
+  const { data, error, loading, reload } = useApi<OverviewData>("/api/admin/overview");
 
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    api<OverviewData>("/api/admin/overview")
-      .then((d) => !cancelled && setData(d))
-      .catch((e) => !cancelled && setError(errorMessage(e)));
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadKey]);
-
-  const retry = () => {
-    setError(null);
-    setReloadKey((k) => k + 1);
-  };
-
-  if (error) return <ErrorBlock title="Couldn't load the overview" message={error} onRetry={retry} />;
-  if (!data) return <LoadingBlock label="Loading overview…" />;
+  if (error && !data) {
+    return <ErrorBlock title="Couldn't load the overview" message={error} onRetry={reload} />;
+  }
+  if (loading || !data) return <LoadingBlock label="Loading overview…" />;
 
   return (
     <AdminOverviewView

@@ -6,12 +6,12 @@ import EventCard from "./EventCard";
 import type { EventData } from "@/lib/events";
 import Reveal from "@/components/motion/Reveal";
 
-// The landing page shows the next few events; /events has the full list.
-const SHOWN = 3;
-
-export default function Events({ events }: { events: EventData[] }) {
-  const shown = events.slice(0, SHOWN);
-  const joined = events.reduce((sum, e) => sum + (e.attendees ?? 0), 0);
+/**
+ * The landing page shows the first few events; /events has the full list. `events`
+ * is just that first page, and `total` is how many exist.
+ */
+export default function Events({ events, total }: { events: EventData[]; total: number }) {
+  const shown = events;
 
   return (
     <section
@@ -31,10 +31,12 @@ export default function Events({ events }: { events: EventData[] }) {
             </p>
           </div>
 
-          {joined > 0 && (
+          {total > 0 && (
             <div className="text-xs text-neutral-400 flex items-center gap-2 shrink-0">
               <Users className="w-4 h-4 text-neutral-500" />
-              <span>{joined.toLocaleString("en-IN")} registrations across our events</span>
+              <span>
+                {total} {total === 1 ? "event" : "events"} so far
+              </span>
             </div>
           )}
         </Reveal>
@@ -54,7 +56,7 @@ export default function Events({ events }: { events: EventData[] }) {
           </p>
         )}
 
-        {events.length > SHOWN && (
+        {total > events.length && (
           <div className="mt-10 text-center">
             <Link
               href="/events"
