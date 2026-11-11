@@ -9,7 +9,10 @@
     "start": "next start",
     "lint": "eslint",
     "create-admin": "node --env-file=.env scripts/create-admin.ts",
-    "setup-admin": "node --env-file=.env scripts/setup-admin.ts --force"
+    "setup-admin": "node --env-file=.env scripts/setup-admin.ts --force",
+    "db:backup": "node --env-file=.env scripts/migrate-data.ts backup",
+    "db:seed": "node --env-file=.env scripts/migrate-data.ts seed",
+    "db:verify": "node --env-file=.env scripts/migrate-data.ts verify"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

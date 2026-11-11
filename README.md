@@ -63,3 +63,28 @@ won't run; keep it as `npm run vercel-build` or leave the field empty.
 
 Try it from your machine without changing anything: `node --env-file=.env scripts/setup-admin.ts --force --dry-run`
 (set the `ADMIN_*` variables in `.env` first).
+
+## Migrating data from the old site
+
+`scripts/migrate-data.ts` backs up the original database (`ORIGINAL_DB_URI`) and copies it
+into another one. The original is only ever read. Seeding only **adds** documents that are
+missing (matched by `_id`); it never replaces or deletes, and it writes a log of what it
+inserted so it can be undone. Without `--apply` it is a dry run.
+
+```bash
+npm run db:backup                                    # snapshot ORIGINAL_DB_URI -> backups/
+npm run db:seed                                      # dry run against MONGODB_URI
+npm run db:seed -- --apply                           # write to MONGODB_URI
+
+# production: snapshot it first, then dry run, then apply
+npm run db:backup -- --source MONGODB_PROD_URI
+npm run db:seed   -- --target MONGODB_PROD_URI
+npm run db:seed   -- --target MONGODB_PROD_URI --apply
+
+npm run db:verify -- --target MONGODB_PROD_URI       # compare the backup with a database
+```
+
+An account that already exists in the target under a different `_id` (same email or username)
+is not added again; its profile and event references are pointed at the existing account.
+`backups/` is git-ignored because it contains personal data and password hashes. If Node can't
+resolve an Atlas address, set `DNS_SERVERS=8.8.8.8,1.1.1.1`.
