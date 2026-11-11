@@ -8,6 +8,7 @@ import { Mail, Lock, ArrowRight } from "lucide-react";
 import AuthLayout from "@/components/auth/AuthLayout";
 import AuthInput from "@/components/auth/AuthInput";
 import { safeNext } from "@/lib/auth/redirect";
+import { setSessionUser } from "@/lib/auth/client-session";
 
 export default function LoginClient() {
   const router = useRouter();
@@ -37,6 +38,8 @@ export default function LoginClient() {
         return;
       }
 
+      // So the navbar shows "Dashboard" straight away on the next page.
+      if (data?.user) setSessionUser(data.user);
       router.replace(safeNext(searchParams.get("next")));
       router.refresh();
     } catch {

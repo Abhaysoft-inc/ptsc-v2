@@ -30,22 +30,22 @@ export default function Footer() {
 
           {/* Quick Minimal Links */}
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm text-neutral-400">
-            <Link href="/#community" className="hover:text-white transition-colors">
+            <Link href="/community" className="hover:text-white transition-colors">
               Community
             </Link>
-            <Link href="/#products" className="hover:text-white transition-colors">
+            <Link href="/what-we-do" className="hover:text-white transition-colors">
               What We Do
             </Link>
-            <Link href="/#events" className="hover:text-white transition-colors">
+            <Link href="/events" className="hover:text-white transition-colors">
               Events
             </Link>
-            <Link href="/#stories" className="hover:text-white transition-colors">
+            <Link href="/blogs" className="hover:text-white transition-colors">
               Stories
             </Link>
-            <Link href="/#privacy" className="hover:text-white transition-colors">
+            <Link href="/privacy" className="hover:text-white transition-colors">
               Privacy
             </Link>
-            <Link href="/#terms" className="hover:text-white transition-colors">
+            <Link href="/terms" className="hover:text-white transition-colors">
               Terms
             </Link>
           </nav>

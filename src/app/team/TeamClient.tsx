@@ -4,47 +4,86 @@ import { useState } from "react";
 import Image from "next/image";
 import {
   GraduationCap,
-  Sparkles,
   ArrowDown,
-  ArrowRight,
   MapPin,
   Users,
   ChevronDown,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { teamMembers, TeamMember } from "@/lib/team";
+import type { PublicTeamMember } from "@/lib/team";
 import { AnimatePresence, motion } from "motion/react";
 import Reveal from "@/components/motion/Reveal";
 
-const ALL_BATCHES = ["2026", "2027", "2028", "2029"] as const;
+/** A member's photo, or their initials when they have none or it won't load. */
+function MemberPhoto({ member }: { member: PublicTeamMember }) {
+  // Photo links can expire (LinkedIn's do), so a failed one falls back too.
+  const [failed, setFailed] = useState(false);
+  const initials = member.name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
-const batchLabels: Record<string, string> = {
-  "2026": "Batch of 2026",
-  "2027": "Batch of 2027",
-  "2028": "Batch of 2028",
-  "2029": "Batch of 2029",
-};
+  if (!member.image || failed) {
+    return (
+      <div
+        role="img"
+        aria-label={member.name}
+        className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-neutral-800 to-neutral-900 text-3xl sm:text-4xl font-semibold text-neutral-400"
+      >
+        {initials}
+      </div>
+    );
+  }
 
-const memberImages: Record<string, string> = {
-  "member-1": "/bg.jpg",
-  "member-2": "/featured-collab.jpg",
-  "member-3": "/featured-saas.jpg",
-  "member-4": "/featured-launch.jpg",
-  "member-5": "/collage.png",
-  "member-6": "/bg.jpg",
-  "member-7": "/featured-collab.jpg",
-  "member-8": "/featured-saas.jpg",
-  "member-9": "/featured-launch.jpg",
-  "member-10": "/collage.png",
-  "member-11": "/bg.jpg",
-  "member-12": "/featured-collab.jpg",
-  "member-13": "/featured-saas.jpg",
-};
+  return (
+    <Image
+      src={member.image}
+      alt={member.name}
+      fill
+      // Photos come from other websites, which next/image only allows for hosts
+      // listed in next.config, so remote ones are served as they are.
+      unoptimized={member.image.startsWith("http")}
+      onError={() => setFailed(true)}
+      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+      className="object-cover transition-transform duration-500 ease-out group-hover:scale-105 rounded-none"
+    />
+  );
+}
 
-export default function TeamClient() {
+export default function TeamClient({ members: allMembers }: { members: PublicTeamMember[] }) {
   // Initial state is COLLAPSED (empty array = all collapsed)
   const [expandedBatches, setExpandedBatches] = useState<string[]>([]);
+
+  // Batches come from the data, oldest first. Members with no batch go last.
+  const years = [
+    ...new Set(allMembers.flatMap((m) => (m.batch !== null ? [m.batch] : []))),
+  ].sort((a, b) => a - b);
+  const groups = [
+    ...years.map((year) => ({
+      key: String(year),
+      label: `Batch of ${year}`,
+      members: allMembers.filter((m) => m.batch === year),
+    })),
+    ...(allMembers.some((m) => m.batch === null)
+      ? [
+          {
+            key: "other",
+            label: "Other members",
+            members: allMembers.filter((m) => m.batch === null),
+          },
+        ]
+      : []),
+  ];
+  const classRange =
+    years.length === 0
+      ? ""
+      : years.length === 1
+      ? `Class of ${years[0]}`
+      : `Class of ${years[0]} – ${years[years.length - 1]}`;
 
   const toggleBatchCollapse = (batch: string) => {
     if (expandedBatches.includes(batch)) {
@@ -91,14 +130,20 @@ export default function TeamClient() {
 
           {/* Details Strip */}
           <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs sm:text-sm text-neutral-300">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-neutral-400" />
-              <span className="font-medium text-white">Class of 2026 – 2029</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-neutral-400" />
-              <span>4 Active Batches</span>
-            </div>
+            {classRange && (
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-neutral-400" />
+                <span className="font-medium text-white">{classRange}</span>
+              </div>
+            )}
+            {allMembers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-neutral-400" />
+                <span>
+                  {allMembers.length} {allMembers.length === 1 ? "Member" : "Members"}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-neutral-400" />
               <span>Campus Innovation Hub</span>
@@ -132,10 +177,14 @@ export default function TeamClient() {
 
 
           {/* COLLAPSIBLE BATCH SECTIONS (Initially Collapsed, Clean Borderless) */}
+          {groups.length === 0 && (
+            <p className="py-10 text-center text-sm text-neutral-400">
+              Team members will appear here soon.
+            </p>
+          )}
+
           <div className="flex flex-col divide-y divide-white/[0.08]">
-            {ALL_BATCHES.map((batch) => {
-              const members = teamMembers.filter((m) => m.batch === batch);
-              const label = batchLabels[batch] || `Batch of ${batch}`;
+            {groups.map(({ key: batch, label, members }) => {
               const isExpanded = expandedBatches.includes(batch);
 
               return (
@@ -181,8 +230,6 @@ export default function TeamClient() {
                       <div className="mt-6 pt-2">
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-6 sm:gap-8">
                         {members.map((member, i) => {
-                          const imgSrc = memberImages[member.id] || "/bg.jpg";
-
                           return (
                             <motion.div
                               key={member.id}
@@ -197,23 +244,22 @@ export default function TeamClient() {
                             >
                               {/* Raw Image: 0 Roundness, no border wrapper */}
                               <div className="relative w-full aspect-[3/4] bg-neutral-900 overflow-hidden rounded-none">
-                                <Image
-                                  src={imgSrc}
-                                  alt={member.name}
-                                  fill
-                                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-105 rounded-none"
-                                />
+                                <MemberPhoto member={member} />
 
                                 {/* Subtle bottom vignette */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
                               </div>
 
-                              {/* Simple Centered Name Below Card */}
+                              {/* Name and post below the photo */}
                               <div className="mt-3 flex flex-col items-center text-center px-1">
                                 <h4 className="text-sm sm:text-base font-semibold text-white tracking-tight leading-tight group-hover:text-neutral-200 transition-colors">
                                   {member.name}
                                 </h4>
+                                {member.post && (
+                                  <p className="mt-1 text-xs text-neutral-400 leading-snug">
+                                    {member.post}
+                                  </p>
+                                )}
                               </div>
                             </motion.div>
                           );

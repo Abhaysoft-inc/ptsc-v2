@@ -106,6 +106,28 @@ export type EventInput = Omit<
   "id" | "date" | "status" | "registeredCount" | "attendedCount"
 > & { date: string };
 
+export type ProjectStatus = "in-progress" | "completed";
+
+/** A project as the dashboard and the public Projects page show it. */
+export interface AdminProject {
+  id: string;
+  title: string;
+  summary: string;
+  /** Technologies, e.g. "Next.js". */
+  tags: string[];
+  status: ProjectStatus;
+  githubUrl?: string;
+  liveUrl?: string;
+  imageUrl?: string;
+  /** Who built it, as free text. */
+  builtBy: string;
+  featured: boolean;
+  createdAt: string | null;
+}
+
+/** What the project form sends. */
+export type ProjectInput = Omit<AdminProject, "id" | "createdAt">;
+
 /** Numbers for the dashboard's Overview tab. */
 export interface OverviewData {
   events: {

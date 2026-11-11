@@ -52,6 +52,8 @@ export async function rateLimit(request: Request, options: Options) {
       RateLimit.findOneAndUpdate({ key }, update, {
         upsert: true,
         returnDocument: "after",
+        // Mongoose refuses an array (pipeline) update unless this is set.
+        updatePipeline: true,
       }).lean();
 
     let bucket;

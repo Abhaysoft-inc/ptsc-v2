@@ -4,13 +4,23 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, X } from "lucide-react";
+import { useSessionUser } from "@/lib/auth/client-session";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // undefined until we know; then the user, or null when signed out.
+  const user = useSessionUser();
+  const account =
+    user === undefined
+      ? null
+      : user
+      ? { href: "/dashboard", label: "Dashboard" }
+      : { href: "/login", label: "Sign in" };
 
   const links = [
     { name: "Home", href: "/" },
     { name: "Events", href: "/events" },
+    { name: "Projects", href: "/projects" },
     { name: "Team", href: "/team" },
     { name: "Blogs", href: "/blogs" },
   ];
@@ -51,12 +61,19 @@ export default function Navbar() {
 
         {/* Right Action - Simple Text */}
         <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-          <Link
-            href="/login"
-            className="text-neutral-300 hover:text-white transition-colors duration-150"
-          >
-            Sign in
-          </Link>
+          {account ? (
+            <Link
+              href={account.href}
+              className="text-neutral-300 hover:text-white transition-colors duration-150"
+            >
+              {account.label}
+            </Link>
+          ) : (
+            // Holds the space while we check, so the wrong button never flashes.
+            <span aria-hidden="true" className="invisible">
+              Dashboard
+            </span>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -83,13 +100,15 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
-          <Link
-            href="/login"
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-white hover:text-neutral-300 transition-colors py-1 pt-2 border-t border-white/10"
-          >
-            Sign in
-          </Link>
+          {account && (
+            <Link
+              href={account.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-white hover:text-neutral-300 transition-colors py-1 pt-2 border-t border-white/10"
+            >
+              {account.label}
+            </Link>
+          )}
         </div>
       )}
     </header>

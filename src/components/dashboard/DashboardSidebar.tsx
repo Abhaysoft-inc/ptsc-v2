@@ -12,12 +12,14 @@ import {
   ImageIcon,
   Users,
   GraduationCap,
+  FolderGit2,
   Trophy,
   UserCog,
   LogOut,
   type LucideIcon,
 } from "lucide-react";
 import type { DashboardRole } from "@/lib/dashboard";
+import { setSessionUser } from "@/lib/auth/client-session";
 
 export type DashboardTab =
   | "overview"
@@ -26,6 +28,7 @@ export type DashboardTab =
   | "attendance"
   | "mails"
   | "media"
+  | "projects"
   | "users"
   | "advisors"
   | "leaderboard"
@@ -50,6 +53,7 @@ export const DASHBOARD_TABS: TabConfig[] = [
   { id: "attendance", label: "Attendance", href: "/dashboard/attendance", icon: QrCode, roles: STAFF },
   { id: "mails", label: "Mail Management", href: "/dashboard/mail", icon: Mail, roles: STAFF },
   { id: "media", label: "Media", href: "/dashboard/media", icon: ImageIcon, roles: ALL },
+  { id: "projects", label: "Projects", href: "/dashboard/projects", icon: FolderGit2, roles: STAFF },
   { id: "users", label: "Users", href: "/dashboard/users", icon: Users, roles: ["admin"] },
   { id: "advisors", label: "Faculty Advisors", href: "/dashboard/advisors", icon: GraduationCap, roles: ["admin"] },
   { id: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, roles: STAFF },
@@ -86,6 +90,7 @@ export default function DashboardSidebar({
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+      setSessionUser(null); // so the navbar goes back to "Sign in"
     } finally {
       router.replace("/login");
       router.refresh();

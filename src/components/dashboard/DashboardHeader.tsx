@@ -25,6 +25,10 @@ const TAB_COPY: Record<DashboardTab, { title: string; subtitle: string }> = {
     title: "Media",
     subtitle: "Photos and highlights from PTSC events",
   },
+  projects: {
+    title: "Projects",
+    subtitle: "Add and edit the projects shown on the public Projects page",
+  },
   users: {
     title: "Users",
     subtitle: "Community members, builders, and administrative roles",

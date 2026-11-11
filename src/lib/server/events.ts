@@ -83,10 +83,10 @@ export async function uniqueSlug(title: string, excludeId?: string) {
 
 // ----------------------------------------------------------- validation ----
 
-const text = (max: number) => z.string().trim().max(max);
+export const text = (max: number) => z.string().trim().max(max);
 
 /** An http(s) URL, or "" / missing for none. */
-const optionalUrl = z
+export const optionalUrl = z
   .string()
   .trim()
   .max(2000)
