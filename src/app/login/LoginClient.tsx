@@ -55,18 +55,18 @@ export default function LoginClient() {
         &quot;PTSC gave me the peers, mentors, and accountability to launch my first production software before my junior year.&quot;
       </p>
       <div className="mt-4 flex items-center gap-3">
-        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-neutral-800 border border-white/10">
+        {/* <div className="relative w-8 h-8 rounded-full overflow-hidden bg-neutral-800 border border-white/10">
           <Image
             src="/featured-saas.jpg"
             alt="Student Builder"
             fill
             className="object-cover"
           />
-        </div>
-        <div>
+        </div> */}
+        {/* <div>
           <p className="text-xs font-semibold text-white">Abhay Sharma</p>
           <p className="text-[11px] text-neutral-500 font-mono">Founder • Batch of 2026</p>
-        </div>
+        </div> */}
       </div>
     </div>
   );

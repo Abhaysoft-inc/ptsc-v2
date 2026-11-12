@@ -17,6 +17,8 @@ import {
   PenLine,
   UserCog,
   LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
   type LucideIcon,
 } from "lucide-react";
 import type { DashboardRole } from "@/lib/dashboard";
@@ -81,11 +83,12 @@ export function getVisibleTabs(role: DashboardRole) {
 
 interface DashboardSidebarProps {
   role: DashboardRole;
+  /** Labels shown next to the icons (md screens and up). */
+  expanded: boolean;
+  onToggle: () => void;
 }
 
-export default function DashboardSidebar({
-  role,
-}: DashboardSidebarProps) {
+export default function DashboardSidebar({ role, expanded, onToggle }: DashboardSidebarProps) {
   const activeTab = getTabFromPath(usePathname());
   const router = useRouter();
 
@@ -101,28 +104,60 @@ export default function DashboardSidebar({
   };
   const visibleTabs = getVisibleTabs(role);
 
-  return (
-    <aside className="fixed inset-y-0 left-0 z-40 w-[64px] bg-[#0d0d10] border-r border-white/[0.08] flex flex-col items-center py-4">
-      {/* Logo */}
-      <Link
-        href="/"
-        aria-label="PTSC home"
-        className="relative w-10 h-10 rounded-xl bg-white/[0.04] border border-white/10 hover:bg-white/10 transition-colors select-none"
-      >
-        <Image
-          src="/logo.png"
-          alt="PTSC logo"
-          fill
-          sizes="40px"
-          priority
-          className="object-contain p-1.5"
-        />
-      </Link>
+  // On phones the sidebar is always the icon rail; from md up it follows `expanded`.
+  const wide = expanded ? "md:w-[224px] md:items-stretch" : "";
+  const label = expanded ? "hidden md:inline truncate" : "hidden";
+  const row = expanded ? "md:w-full md:justify-start md:gap-3 md:px-3" : "";
+  // The floating name only appears when the name isn't already shown.
+  const tooltip = expanded ? "md:hidden" : "";
 
-      {/* Tab icons */}
+  return (
+    <aside
+      className={`fixed inset-y-0 left-0 z-40 flex w-[64px] flex-col items-center border-r border-white/[0.08] bg-[#0d0d10] px-2 py-4 transition-[width] duration-200 ${wide}`}
+    >
+      {/* Logo + collapse toggle */}
+      <div className={`flex items-center ${expanded ? "md:justify-between md:px-1" : ""} justify-center`}>
+        <Link
+          href="/"
+          aria-label="PTSC home"
+          className="flex items-center gap-2.5 select-none"
+        >
+          <span className="relative h-10 w-10 shrink-0 rounded-xl border border-white/10 bg-white/[0.04] transition-colors hover:bg-white/10">
+            <Image src="/logo.png" alt="PTSC logo" fill sizes="40px" priority className="object-contain p-1.5" />
+          </span>
+          <span className={`${label} text-sm font-bold tracking-tight text-white`}>PTSC</span>
+        </Link>
+        {expanded && (
+          <button
+            type="button"
+            onClick={onToggle}
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
+            aria-expanded
+            className="hidden h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-white/5 hover:text-white cursor-pointer md:flex"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {!expanded && (
+        <button
+          type="button"
+          onClick={onToggle}
+          title="Expand sidebar"
+          aria-label="Expand sidebar"
+          aria-expanded={false}
+          className="mt-3 hidden h-8 w-11 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-white/5 hover:text-white cursor-pointer md:flex"
+        >
+          <PanelLeftOpen className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Tabs */}
       <nav
         aria-label="Dashboard sections"
-        className="mt-6 flex-1 flex flex-col items-center gap-1.5 w-full px-2 overflow-y-auto no-scrollbar"
+        className={`mt-6 flex w-full flex-1 flex-col items-center gap-1.5 overflow-y-auto no-scrollbar ${expanded ? "md:items-stretch" : ""}`}
       >
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
@@ -132,19 +167,22 @@ export default function DashboardSidebar({
             <Link
               key={tab.id}
               href={tab.href}
-              title={tab.label}
+              title={expanded ? undefined : tab.label}
               aria-label={tab.label}
               aria-current={isActive ? "page" : undefined}
-              className={`group relative w-11 h-11 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+              className={`group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-medium transition-colors cursor-pointer ${row} ${
                 isActive
                   ? "bg-white/10 text-white shadow-inner ring-1 ring-white/10"
-                  : "text-neutral-500 hover:text-white hover:bg-white/5"
+                  : "text-neutral-500 hover:bg-white/5 hover:text-white"
               }`}
             >
-              <Icon className="w-[18px] h-[18px]" />
+              <Icon className="h-[18px] w-[18px] shrink-0" />
+              <span className={label}>{tab.label}</span>
 
-              {/* Hover label */}
-              <span className="pointer-events-none absolute left-[calc(100%+10px)] z-50 whitespace-nowrap px-2 py-1 rounded-md bg-[#1c1c20] border border-white/10 text-[11px] font-medium text-white opacity-0 translate-x-(-1) group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-xl">
+              {/* Hover label when only the icon shows */}
+              <span
+                className={`pointer-events-none absolute left-[calc(100%+10px)] z-50 whitespace-nowrap rounded-md border border-white/10 bg-[#1c1c20] px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-xl transition-all group-hover:opacity-100 ${tooltip}`}
+              >
                 {tab.label}
               </span>
             </Link>
@@ -156,11 +194,12 @@ export default function DashboardSidebar({
       <button
         type="button"
         onClick={handleLogout}
-        title="Logout"
+        title={expanded ? undefined : "Logout"}
         aria-label="Logout"
-        className="mt-2 w-11 h-11 rounded-xl flex items-center justify-center text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+        className={`mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-medium text-neutral-500 transition-colors hover:bg-red-500/10 hover:text-red-400 cursor-pointer ${row}`}
       >
-        <LogOut className="w-[18px] h-[18px]" />
+        <LogOut className="h-[18px] w-[18px] shrink-0" />
+        <span className={label}>Logout</span>
       </button>
     </aside>
   );

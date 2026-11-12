@@ -10,6 +10,7 @@ import DashboardSidebar, {
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardTopBar from "@/components/dashboard/DashboardTopBar";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
+import { useSidebarExpanded } from "@/components/dashboard/useSidebarExpanded";
 
 // Rail + top bar + page title around whichever tab route is open. Each tab is
 // its own route under /dashboard, so the URL is the source of truth for which
@@ -22,6 +23,7 @@ export default function DashboardLayoutClient({
   const router = useRouter();
   const pathname = usePathname();
   const { role, setRole, currentUser } = useAdminDashboard();
+  const { expanded, toggle } = useSidebarExpanded();
 
   const visibleTabs = getVisibleTabs(role);
   const routeTab = getTabFromPath(pathname);
@@ -35,9 +37,14 @@ export default function DashboardLayoutClient({
 
   return (
     <div className="relative min-h-screen bg-[#080809] text-white selection:bg-white selection:text-black overflow-x-clip">
-      <DashboardSidebar role={role} />
+      <DashboardSidebar role={role} expanded={expanded} onToggle={toggle} />
 
-      <div className="pl-[64px] min-h-screen flex flex-col">
+      {/* Leaves room for the sidebar: the icon rail on phones, its chosen width from md up. */}
+      <div
+        className={`flex min-h-screen flex-col pl-[64px] transition-[padding] duration-200 ${
+          expanded ? "md:pl-[224px]" : ""
+        }`}
+      >
         <DashboardTopBar
           user={currentUser}
           role={role}
