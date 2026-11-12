@@ -81,6 +81,3 @@ export function extractHeadings(markdown: string): Heading[] {
   }
   return headings;
 }
-
-/** Only Cloudinary images go through the image optimiser; other links are shown as they are. */
-export const isOptimizable = (url: string) => /^https:\/\/res\.cloudinary\.com\//.test(url);

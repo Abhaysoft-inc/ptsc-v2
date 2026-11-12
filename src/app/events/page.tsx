@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import {
   Calendar,
   Clock,
@@ -49,7 +49,6 @@ async function EventsContent({
               alt={featuredEvent.title}
               fill
               priority
-              unoptimized={featuredEvent.image.startsWith("http")}
               sizes="100vw"
               className="object-cover object-center scale-105"
             />

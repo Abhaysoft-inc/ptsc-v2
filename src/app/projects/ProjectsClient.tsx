@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import Link from "next/link";
 import { ArrowRight, ExternalLink, Star } from "lucide-react";
 import type { AdminProject } from "@/lib/types/admin";
@@ -23,8 +23,6 @@ function ProjectImage({ project }: { project: AdminProject }) {
         src={project.imageUrl}
         alt={project.title}
         fill
-        // Remote hosts aren't listed in next.config, so these are served as they are.
-        unoptimized
         sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
         onError={() => setFailed(true)}
         className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -9,7 +9,7 @@ import BlogCard, { formatDate } from "@/components/blog/BlogCard";
 import JsonLd from "@/components/seo/JsonLd";
 import { getPublicBlog } from "@/lib/server/public-blogs";
 import { SITE_NAME, siteUrl } from "@/lib/site";
-import { extractHeadings, isOptimizable, makeExcerpt } from "@/lib/blog-text";
+import { extractHeadings, makeExcerpt } from "@/lib/blog-text";
 
 export const instant = false;
 
@@ -210,7 +210,6 @@ export default async function BlogPostPage({ params }: Props) {
                 <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-neutral-900">
                   <Image
                     src={post.coverImageUrl}
-                    unoptimized={!isOptimizable(post.coverImageUrl)}
                     alt={post.coverAlt || post.title}
                     fill
                     priority

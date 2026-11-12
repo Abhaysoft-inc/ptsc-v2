@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import {
   GraduationCap,
   ArrowDown,
@@ -46,7 +46,6 @@ function MemberPhoto({ member }: { member: PublicTeamMember }) {
       fill
       // Photos come from other websites, which next/image only allows for hosts
       // listed in next.config, so remote ones are served as they are.
-      unoptimized={member.image.startsWith("http")}
       onError={() => setFailed(true)}
       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
       className="object-cover transition-transform duration-500 ease-out group-hover:scale-105 rounded-none"

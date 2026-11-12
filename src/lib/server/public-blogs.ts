@@ -120,11 +120,14 @@ export interface PublicBlogPage {
 export async function getPublicBlogs(filter: PublicBlogFilter = {}): Promise<PublicBlogPage> {
   "use cache";
   cacheTag(BLOGS_TAG);
-  cacheLife("minutes");
 
   const pageSize = Math.min(24, Math.max(1, filter.pageSize ?? 9));
   const wanted = Math.max(1, Math.floor(filter.page ?? 1));
   const q = (filter.q ?? "").trim().slice(0, 60);
+  // Lists, categories and pages are few and are expired when a post changes, so they live
+  // long. Search text can be anything, so those results are kept only briefly.
+  if (q) cacheLife("minutes");
+  else cacheLife("blogs");
   const unfiltered = !filter.category && !filter.tag && !q;
 
   await connectDB();
@@ -174,7 +177,7 @@ export async function getPublicBlogs(filter: PublicBlogFilter = {}): Promise<Pub
 export async function getLatestBlogs(limit = 3): Promise<PublicBlogCard[]> {
   "use cache";
   cacheTag(BLOGS_TAG);
-  cacheLife("minutes");
+  cacheLife("blogs");
 
   await connectDB();
   const rows = await Blog.aggregate<CardRow>([
@@ -191,7 +194,7 @@ export async function getLatestBlogs(limit = 3): Promise<PublicBlogCard[]> {
 export async function getPublicBlogCategories(): Promise<{ name: string; key: string; count: number }[]> {
   "use cache";
   cacheTag(BLOGS_TAG);
-  cacheLife("minutes");
+  cacheLife("blogs");
 
   await connectDB();
   await ensureCategories();
@@ -220,7 +223,7 @@ export type PublicBlogResult =
 export async function getPublicBlog(slug: string): Promise<PublicBlogResult> {
   "use cache";
   cacheTag(BLOGS_TAG);
-  cacheLife("minutes");
+  cacheLife("blogs");
 
   await connectDB();
   const [row] = await Blog.aggregate<FullRow>([
@@ -298,7 +301,7 @@ export interface BlogIndexEntry {
 export async function getBlogIndex(limit = 500): Promise<BlogIndexEntry[]> {
   "use cache";
   cacheTag(BLOGS_TAG);
-  cacheLife("minutes");
+  cacheLife("blogs");
 
   await connectDB();
   const rows = await Blog.aggregate<CardRow & { publishedUpdatedAt?: Date; updatedAt?: Date }>([

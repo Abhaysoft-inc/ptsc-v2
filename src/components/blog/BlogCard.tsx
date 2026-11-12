@@ -1,7 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import type { PublicBlogCard } from "@/lib/types/blog";
-import { isOptimizable } from "@/lib/blog-text";
 
 export function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -15,7 +14,6 @@ export default function BlogCard({ post, priority = false }: { post: PublicBlogC
           {post.coverImageUrl ? (
             <Image
               src={post.coverImageUrl}
-              unoptimized={!isOptimizable(post.coverImageUrl)}
               alt={post.coverAlt || post.title}
               fill
               priority={priority}

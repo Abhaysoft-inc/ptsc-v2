@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import {
   ChevronLeft,
   Ticket,
@@ -59,7 +59,6 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
           alt={event.title}
           fill
           priority
-          unoptimized={event.image.startsWith("http")}
           className="object-cover blur-3xl scale-125 opacity-35"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-[#080809]/80 to-[#080809]" />
@@ -89,7 +88,6 @@ export default function EventDetailClient({ event }: EventDetailClientProps) {
                 alt={event.title}
                 fill
                 priority
-                unoptimized={event.image.startsWith("http")}
                 sizes="(max-width: 768px) 100vw, 420px"
                 className="object-cover"
               />

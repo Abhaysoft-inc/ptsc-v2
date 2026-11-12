@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import {
   ChevronLeft,
   Calendar,
@@ -354,7 +354,6 @@ export default function EventRegisterClient({ event }: EventRegisterClientProps)
           alt={event.title}
           fill
           priority
-          unoptimized={event.image.startsWith("http")}
           className="object-cover blur-3xl scale-125 opacity-30"
         />
         <div className="absolute inset-0 bg-linear-to-b from-black/50 via-[#080809]/85 to-[#080809]" />
@@ -450,7 +449,6 @@ export default function EventRegisterClient({ event }: EventRegisterClientProps)
                     alt={event.title}
                     fill
                     priority
-                    unoptimized={event.image.startsWith("http")}
                     sizes="(max-width: 1024px) 100vw, 450px"
                     className="object-cover"
                   />

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import { MapPin } from "lucide-react";
 import { EventData } from "@/lib/events";
 
@@ -70,9 +70,6 @@ export default function EventCard({ event }: EventCardProps) {
           src={src}
           alt={title}
           fill
-          // Cover images can be any website, which next/image only allows for
-          // hosts listed in next.config. Remote ones are served as they are.
-          unoptimized={src.startsWith("http")}
           onError={() => setFailed(true)}
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"

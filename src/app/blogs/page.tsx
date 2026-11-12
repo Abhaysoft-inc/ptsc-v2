@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/cloud-image";
 import type { Metadata } from "next";
 import { ArrowRight, PenLine, Search } from "lucide-react";
 import SitePage, { PageHeader } from "@/components/site/SitePage";
@@ -9,7 +9,6 @@ import JsonLd from "@/components/seo/JsonLd";
 import Reveal from "@/components/motion/Reveal";
 import { getPublicBlogCategories, getPublicBlogs } from "@/lib/server/public-blogs";
 import { SITE_NAME, siteUrl } from "@/lib/site";
-import { isOptimizable } from "@/lib/blog-text";
 
 type Search = { page?: string; category?: string; tag?: string; q?: string };
 
@@ -109,7 +108,6 @@ async function BlogsContent({ searchParams }: { searchParams: Promise<Search> })
                   {featured.coverImageUrl && (
                     <Image
                       src={featured.coverImageUrl}
-                      unoptimized={!isOptimizable(featured.coverImageUrl)}
                       alt={featured.coverAlt || featured.title}
                       fill
                       priority
