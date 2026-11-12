@@ -16,7 +16,11 @@ interface SignResponse {
  * Uploads an image to Cloudinary and returns its https link. Throws an Error
  * with a message that can be shown as is.
  */
-export async function uploadImage(file: File): Promise<string> {
+export async function uploadImage(
+  file: File,
+  /** Who may upload: the staff signer by default, or e.g. the blog one for any signed-in user. */
+  signEndpoint = "/api/admin/uploads/sign"
+): Promise<string> {
   if (!IMAGE_TYPES.includes(file.type)) {
     throw new Error("Choose a JPG, PNG, WebP or GIF image.");
   }
@@ -24,7 +28,7 @@ export async function uploadImage(file: File): Promise<string> {
     throw new Error(`That image is over ${MAX_IMAGE_MB} MB. Choose a smaller one.`);
   }
 
-  const sign = await api<SignResponse>("/api/admin/uploads/sign", { method: "POST" });
+  const sign = await api<SignResponse>(signEndpoint, { method: "POST" });
 
   // These must match what the server signed, or Cloudinary rejects the upload.
   const body = new FormData();

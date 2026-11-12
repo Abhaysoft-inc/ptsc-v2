@@ -10,6 +10,7 @@ import {
 } from "@/lib/server/events";
 import { toRegistrationRow } from "@/lib/server/registrations";
 import type { OverviewData } from "@/lib/types/admin";
+import { Blog } from "@/models/Blog";
 import { EmailLog } from "@/models/EmailLog";
 import { Event } from "@/models/Event";
 import { EventRegistration, type EventRegistrationDoc } from "@/models/EventRegistration";
@@ -44,6 +45,7 @@ export async function GET() {
       approved,
       pending,
       mailRows,
+      blogsAwaitingReview,
     ] = await Promise.all([
       // Spotlight: today's event, else the soonest one still ahead...
       Event.findOne({ ...live, date: { $gte: today } }, "_id").sort({ date: 1 }).lean(),
@@ -75,6 +77,9 @@ export async function GET() {
       EmailLog.aggregate<{ _id: string; count: number }>([
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
+      Blog.countDocuments({
+        $or: [{ status: "pending" }, { status: "published", "revision.state": "pending" }],
+      }),
     ]);
 
     const focusId = (soonest ?? latestLive ?? latestAny)?._id;
@@ -96,6 +101,7 @@ export async function GET() {
         focus: focusRow ? toAdminEventListItem(focusRow) : null,
       },
       members: { approved, pending },
+      blogs: { awaitingReview: blogsAwaitingReview },
       attendance: { registered, checkedIn },
       recentCheckIns: recent.map((r) => {
         const row = toRegistrationRow(r);

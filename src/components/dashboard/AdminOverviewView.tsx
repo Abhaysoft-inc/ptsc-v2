@@ -30,7 +30,7 @@ export default function AdminOverviewView({
   onNavigateTab,
   onCreateEvent,
 }: AdminOverviewViewProps) {
-  const { events, members, attendance, recentCheckIns, mail } = data;
+  const { events, members, attendance, recentCheckIns, mail, blogs } = data;
   const focus = events.focus;
   const checkInRate = Math.round(
     (attendance.checkedIn / (attendance.registered || 1)) * 100
@@ -42,6 +42,21 @@ export default function AdminOverviewView({
 
   return (
     <StaggerList className="space-y-8">
+      {blogs.awaitingReview > 0 && (
+        <button
+          type="button"
+          onClick={() => onNavigateTab("blog")}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-3.5 text-left text-xs text-amber-300 transition-colors hover:bg-amber-500/10 cursor-pointer"
+        >
+          <span>
+            <strong className="font-semibold">
+              {blogs.awaitingReview} blog {blogs.awaitingReview === 1 ? "post is" : "posts are"} waiting for review
+            </strong>
+          </span>
+          <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />
+        </button>
+      )}
+
       {/* 1. Header Banner */}
       <div className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-[#141418] via-[#111114] to-[#18181f] border border-white/10 relative overflow-hidden">
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">

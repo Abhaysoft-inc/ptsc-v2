@@ -222,3 +222,17 @@ export async function getPublicEventCardsSafe(page = 1, pageSize = 12): Promise<
     return { events: [], page: 1, totalPages: 1, total: 0 };
   }
 }
+
+/** The address and date of every published event, for the sitemap. */
+export async function getEventSitemapEntries(): Promise<{ id: string; date: string }[]> {
+  "use cache";
+  cacheTag(EVENTS_TAG);
+  cacheLife("minutes");
+
+  await connectDB();
+  const rows = await Event.find({ published: { $ne: false } }, { slug: 1, date: 1 })
+    .sort({ date: -1 })
+    .limit(1000)
+    .lean();
+  return rows.map((e) => ({ id: e.slug || e._id.toString(), date: new Date(e.date).toISOString() }));
+}

@@ -14,6 +14,7 @@ import {
   GraduationCap,
   FolderGit2,
   Trophy,
+  PenLine,
   UserCog,
   LogOut,
   type LucideIcon,
@@ -29,6 +30,7 @@ export type DashboardTab =
   | "mails"
   | "media"
   | "projects"
+  | "blog"
   | "users"
   | "advisors"
   | "leaderboard"
@@ -54,6 +56,7 @@ export const DASHBOARD_TABS: TabConfig[] = [
   { id: "mails", label: "Mail Management", href: "/dashboard/mail", icon: Mail, roles: STAFF },
   { id: "media", label: "Media", href: "/dashboard/media", icon: ImageIcon, roles: ALL },
   { id: "projects", label: "Projects", href: "/dashboard/projects", icon: FolderGit2, roles: STAFF },
+  { id: "blog", label: "Blog", href: "/dashboard/blog", icon: PenLine, roles: ALL },
   { id: "users", label: "Users", href: "/dashboard/users", icon: Users, roles: ["admin"] },
   { id: "advisors", label: "Faculty Advisors", href: "/dashboard/advisors", icon: GraduationCap, roles: ["admin"] },
   { id: "leaderboard", label: "Leaderboard", href: "/dashboard/leaderboard", icon: Trophy, roles: STAFF },

@@ -29,6 +29,10 @@ const TAB_COPY: Record<DashboardTab, { title: string; subtitle: string }> = {
     title: "Projects",
     subtitle: "Add and edit the projects shown on the public Projects page",
   },
+  blog: {
+    title: "Blog",
+    subtitle: "Write posts, track their review, and approve what goes on the site",
+  },
   users: {
     title: "Users",
     subtitle: "Community members, builders, and administrative roles",

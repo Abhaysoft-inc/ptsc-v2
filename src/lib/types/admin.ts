@@ -147,6 +147,8 @@ export interface OverviewData {
     attendedAt: string | null;
   }[];
   mail: { sent: number; failed: number; pending: number };
+  /** Blog posts and edits waiting for a reviewer. */
+  blogs: { awaitingReview: number };
 }
 
 export interface AdminEventSummary {
