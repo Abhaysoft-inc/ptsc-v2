@@ -7,6 +7,9 @@ import {
   SESSION_TTL,
   createSessionToken,
   sessionCookieOptions,
+  SIGNED_IN_HINT,
+  HINT_MAX_AGE,
+  hintCookieOptions,
 } from "@/lib/auth/session";
 import { toSessionUser } from "@/lib/auth/user";
 import { loginSchema } from "@/lib/auth/validation";
@@ -78,6 +81,7 @@ export async function POST(request: Request) {
       token,
       sessionCookieOptions(remember ? ttl : undefined)
     );
+    response.cookies.set(SIGNED_IN_HINT, "1", hintCookieOptions(HINT_MAX_AGE));
     return response;
   } catch (error) {
     return serverError("Login failed", error);

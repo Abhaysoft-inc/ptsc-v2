@@ -24,7 +24,8 @@ function safeImage(url: string | null | undefined) {
 export async function getPublicTeam(): Promise<PublicTeamMember[]> {
   "use cache";
   cacheTag(TEAM_TAG);
-  cacheLife("minutes");
+  // Admin changes to members expire the "team" tag right away; the hourly refresh is a safety net.
+  cacheLife("hours");
 
   await connectDB();
   const users = await User.find(

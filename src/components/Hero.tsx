@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import Reveal from "@/components/motion/Reveal";
 import ScrambleLogo from "@/components/hero/ScrambleLogo";

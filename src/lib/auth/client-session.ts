@@ -4,15 +4,28 @@ import { useEffect, useSyncExternalStore } from "react";
 import { clearApiCache } from "@/lib/use-api";
 import type { SessionUser } from "./types";
 
-// Who is signed in, as far as the browser knows. Pages like the home page are
-// built ahead of time and can't read the visitor's cookie, so the navbar asks
-// /api/auth/me after it loads. The answer is kept here so moving between pages
-// doesn't flash the wrong button, and sign in / sign out update it directly.
+// Who is signed in, as far as the browser knows. Public pages are served from the
+// CDN and can't read the visitor's cookie, so the navbar finds out after it loads.
+//
+// Asking the server (/api/auth/me) runs a server function, so it is avoided when it
+// can't help:
+//  - A readable "signed in" hint cookie (ptsc_signed_in, set at sign-in, cleared at
+//    sign-out) says whether there is any session at all. Without it the visitor is
+//    signed out, and nothing is asked. That is most visitors.
+//  - With it, the answer is reused for a minute, so moving between pages doesn't ask
+//    again each time.
 
-/** undefined = not asked yet, null = signed out. */
+/** undefined = not known yet, null = signed out. */
 type State = SessionUser | null | undefined;
 
+const HINT = "ptsc_signed_in";
+// Sessions started before the hint existed have no hint; ask once per browser for those.
+const MIGRATED = "ptsc_hint_checked";
+const RECHECK_MS = 60_000;
+
 let current: State = undefined;
+let checkedAt = 0;
+let inflight: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -27,10 +40,23 @@ export function setSessionUser(user: SessionUser | null) {
   // Cached dashboard data belongs to whoever was signed in before.
   if (user?.id !== current?.id) clearApiCache();
   current = user;
+  checkedAt = Date.now();
   listeners.forEach((listener) => listener());
 }
 
-async function refresh() {
+const hasHint = () => document.cookie.split("; ").some((c) => c === `${HINT}=1`);
+
+function firstVisitSinceHint() {
+  try {
+    if (localStorage.getItem(MIGRATED)) return false;
+    localStorage.setItem(MIGRATED, "1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ask() {
   try {
     const res = await fetch("/api/auth/me", { cache: "no-store" });
     if (res.ok) {
@@ -45,15 +71,26 @@ async function refresh() {
   }
 }
 
+function refresh() {
+  if (!hasHint() && !firstVisitSinceHint()) {
+    // No session in this browser: no need to ask the server.
+    if (current !== null) setSessionUser(null);
+    return;
+  }
+  if (current !== undefined && Date.now() - checkedAt < RECHECK_MS) return;
+  inflight ??= ask().finally(() => {
+    inflight = null;
+  });
+}
+
 /**
- * The signed-in user, null when signed out, or undefined until the first answer
- * arrives. Re-checks with the server each time a component using it mounts, so a
- * stale answer is corrected right away.
+ * The signed-in user, null when signed out, or undefined until it's known. Checks
+ * when a component using it mounts, at most once a minute (see above).
  */
 export function useSessionUser(): State {
   const user = useSyncExternalStore(subscribe, () => current, () => undefined);
   useEffect(() => {
-    void refresh();
+    refresh();
   }, []);
   return user;
 }

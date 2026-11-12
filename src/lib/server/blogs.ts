@@ -61,6 +61,8 @@ export const categoryNameSchema = z
       .min(2, "A category name needs at least 2 characters.")
       .max(30, "Keep a category name under 30 characters.")
       .regex(/^[A-Za-z0-9][A-Za-z0-9 &-]*$/, "Use letters, numbers, spaces, & and - only.")
+      // "all" means "every category" in the list's addresses.
+      .refine((name) => categoryKey(name) !== "all", "That name is reserved. Try another.")
   );
 
 // ----------------------------------------------------------- categories ----
@@ -109,7 +111,9 @@ export async function findOrCreateCategory(name: string, userId: string) {
 // ---------------------------------------------------------------- slugs ----
 
 export async function uniqueBlogSlug(title: string, excludeId?: string) {
-  const base = slugify(title).slice(0, 80) || "post";
+  // "search" and "list" are routes under /blogs (see app/blogs/BlogList.tsx).
+  const raw = slugify(title).slice(0, 80) || "post";
+  const base = ["search", "list"].includes(raw) ? `${raw}-post` : raw;
   let candidate = base;
   for (let n = 2; n < 500; n++) {
     const taken = await Blog.exists({

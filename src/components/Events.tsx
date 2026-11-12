@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { Users } from "lucide-react";
 import EventCard from "./EventCard";

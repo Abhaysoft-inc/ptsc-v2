@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import Reveal from "@/components/motion/Reveal";

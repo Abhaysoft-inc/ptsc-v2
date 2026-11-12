@@ -72,7 +72,9 @@ export function slugify(value: string) {
 }
 
 export async function uniqueSlug(title: string, excludeId?: string) {
-  const base = slugify(title) || "event";
+  // "list" is a route under /events (see app/events/EventsView.tsx).
+  const raw = slugify(title) || "event";
+  const base = raw === "list" ? "list-event" : raw;
   let candidate = base;
   for (let n = 2; n < 500; n++) {
     const taken = await Event.exists(

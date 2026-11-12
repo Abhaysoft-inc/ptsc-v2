@@ -28,7 +28,8 @@ export async function getPublicProjects(
 ): Promise<PublicProjectPage> {
   "use cache";
   cacheTag(PROJECTS_TAG);
-  cacheLife("minutes");
+  // Admin changes expire the "projects" tag right away; the hourly refresh is a safety net.
+  cacheLife("hours");
 
   await connectDB();
   const filter = tag ? { tags: tag } : {};

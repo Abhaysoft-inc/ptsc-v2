@@ -1,5 +1,6 @@
 import { NextResponse, connection } from "next/server";
 import { getCurrentUser } from "@/lib/auth/user";
+import { HINT_MAX_AGE, SIGNED_IN_HINT, hintCookieOptions } from "@/lib/auth/session";
 
 export async function GET() {
   // The answer depends on the request's cookies, so never prerender this.
@@ -10,15 +11,21 @@ export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { success: false, message: "Not signed in." },
         { status: 401 }
       );
+      // The navbar only asks when the hint says "signed in"; a wrong hint is dropped.
+      response.cookies.set(SIGNED_IN_HINT, "", hintCookieOptions(0));
+      return response;
     }
-    return NextResponse.json(
+    const response = NextResponse.json(
       { success: true, user },
       { headers: { "Cache-Control": "no-store" } }
     );
+    // Also sets the hint for sessions started before the hint existed.
+    response.cookies.set(SIGNED_IN_HINT, "1", hintCookieOptions(HINT_MAX_AGE));
+    return response;
   } catch (error) {
     console.error("Session lookup failed:", error);
     return NextResponse.json(

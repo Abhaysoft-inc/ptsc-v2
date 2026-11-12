@@ -7,13 +7,27 @@ import SitePage from "@/components/site/SitePage";
 import Markdown from "@/components/blog/Markdown";
 import BlogCard, { formatDate } from "@/components/blog/BlogCard";
 import JsonLd from "@/components/seo/JsonLd";
-import { getPublicBlog } from "@/lib/server/public-blogs";
+import { getBlogIndex, getPublicBlog } from "@/lib/server/public-blogs";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 import { extractHeadings, makeExcerpt } from "@/lib/blog-text";
 
 export const instant = false;
 
 type Props = { params: Promise<{ slug: string }> };
+
+// Every published post is built ahead of time and served from the CDN; a post
+// published later is built on its first visit. Approving, editing or removing a post
+// rebuilds it (the "blogs" cache tag).
+export async function generateStaticParams() {
+  try {
+    const posts = await getBlogIndex();
+    // At least one is required; a placeholder that 404s is fine when there are none.
+    return posts.length ? posts.map((p) => ({ slug: p.slug })) : [{ slug: "no-posts-yet" }];
+  } catch (error) {
+    console.error("Blog posts: couldn't read the posts to prebuild:", error);
+    return [{ slug: "no-posts-yet" }];
+  }
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;

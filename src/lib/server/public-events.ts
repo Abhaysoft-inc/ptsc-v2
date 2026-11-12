@@ -73,7 +73,10 @@ function toPublicEvent(e: EventRecord, registered: number, now: Date): PublicEve
 export async function getPublicEvent(idOrSlug: string): Promise<PublicEvent | null> {
   "use cache";
   cacheTag(EVENTS_TAG);
-  cacheLife("minutes");
+  // Admin changes and new registrations expire the "events" tag right away, so an hourly
+  // refresh only catches time passing: an event turning "past", or its registration closing
+  // (the register API checks that live, so a late visitor is still refused correctly).
+  cacheLife("hours");
 
   await connectDB();
   // The event and its registration count come back in one query.
@@ -153,7 +156,7 @@ function toPublicCard(row: CardRow, now: Date): EventData {
 export async function getPublicEventCards(page = 1, pageSize = 12): Promise<PublicEventPage> {
   "use cache";
   cacheTag(EVENTS_TAG);
-  cacheLife("minutes");
+  cacheLife("hours");
 
   await connectDB();
   const now = new Date();
@@ -227,7 +230,7 @@ export async function getPublicEventCardsSafe(page = 1, pageSize = 12): Promise<
 export async function getEventSitemapEntries(): Promise<{ id: string; date: string }[]> {
   "use cache";
   cacheTag(EVENTS_TAG);
-  cacheLife("minutes");
+  cacheLife("hours");
 
   await connectDB();
   const rows = await Event.find({ published: { $ne: false } }, { slug: 1, date: 1 })

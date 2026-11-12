@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+import { SESSION_COOKIE, clearSessionCookies, verifySessionToken } from "@/lib/auth/session";
 import { safeNext } from "@/lib/auth/redirect";
 import { isCrossSiteWrite } from "@/lib/server/origin";
 
@@ -43,7 +43,7 @@ export async function proxy(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", pathname + search);
   const response = NextResponse.redirect(loginUrl);
-  if (token) response.cookies.delete(SESSION_COOKIE); // expired or forged
+  if (token) clearSessionCookies(response); // expired or forged
   return response;
 }
 

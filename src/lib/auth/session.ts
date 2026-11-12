@@ -1,6 +1,15 @@
 import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "ptsc_session";
+/**
+ * A second, harmless cookie the browser's JavaScript can read: "this browser has
+ * probably signed in". It holds no secret and grants nothing (the real session is
+ * the httpOnly cookie above). It only lets the navbar skip asking the server who is
+ * signed in when nobody is, which saves a server call on every page view.
+ */
+export const SIGNED_IN_HINT = "ptsc_signed_in";
+/** The hint outlives any session; a stale one is cleared after one failed check. */
+export const HINT_MAX_AGE = 30 * 24 * 60 * 60;
 
 const DAY = 24 * 60 * 60;
 /** "Remember me" keeps you signed in for 30 days; otherwise until the browser closes (1 day max). */
@@ -41,6 +50,19 @@ export async function verifySessionToken(token: string) {
   } catch {
     return null;
   }
+}
+
+/** Options for the readable sign-in hint (see SIGNED_IN_HINT). */
+export function hintCookieOptions(maxAgeSeconds: number) {
+  return { ...sessionCookieOptions(maxAgeSeconds), httpOnly: false };
+}
+
+type CookieJar = { cookies: { set(name: string, value: string, options: object): unknown } };
+
+/** Clears the session and the sign-in hint together. */
+export function clearSessionCookies(response: CookieJar) {
+  response.cookies.set(SESSION_COOKIE, "", sessionCookieOptions(0));
+  response.cookies.set(SIGNED_IN_HINT, "", hintCookieOptions(0));
 }
 
 export function sessionCookieOptions(maxAgeSeconds?: number) {
